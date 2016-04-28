@@ -284,10 +284,8 @@ def getIntersection(point_in_3d, vector_in_3d, fnMesh):
             OpenMaya.MFloatPoint : hitPoint
     """
 
-    utils = OpenMaya.MScriptUtil()
-
     hitPoint = OpenMaya.MFloatPoint()
-    hitFacePtr = utils.asIntPtr()
+    hitFacePtr = UTIL.asIntPtr()
     idSorted = False
     testBothDirections = False
     faceIDs = None
@@ -336,8 +334,7 @@ def getNormal(pointPosition, targetFnMesh):
             int              : faceID
     """
 
-    utils = OpenMaya.MScriptUtil()
-    ptr_int = utils.asIntPtr()
+    ptr_int = UTIL.asIntPtr()
     origin = OpenMaya.MPoint(pointPosition)
     normal = OpenMaya.MVector()
     targetFnMesh.getClosestNormal(
@@ -345,7 +342,7 @@ def getNormal(pointPosition, targetFnMesh):
         normal,
         SPACE,
         ptr_int)
-    faceID = utils.getInt(ptr_int)
+    faceID = UTIL.getInt(ptr_int)
     normal.normalize()
 
     return normal, faceID
