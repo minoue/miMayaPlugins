@@ -26,7 +26,7 @@ DUPLICATED = None
 TARGET_FNMESH = None
 SCALE_ORIG = None
 SPACE = OpenMaya.MSpace.kWorld
-UTIL = OpenMaya.MScriptUtil
+UTIL = OpenMaya.MScriptUtil()
 
 
 def getDagPathFromScreen(x, y):
