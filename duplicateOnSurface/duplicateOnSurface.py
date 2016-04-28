@@ -150,11 +150,8 @@ def pressEvent():
 
 
 def getNewObject():
-    # return cmds.duplicate(SOURCE)[0]
-    import cmDuplicate as cmd
-    reload(cmd)
-    o = cmd.duplicate("Bush_01")
-    return o
+    print 'test'
+    return cmds.duplicate(SOURCE)[0]
 
 
 def dragEvent():
