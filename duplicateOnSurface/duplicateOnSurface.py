@@ -123,7 +123,6 @@ def pressEvent():
     # Create new object to snap
     global DUPLICATED
     DUPLICATED = getNewObject()
-    print DUPLICATED
 
     # Get origianl scale information
     global SCALE_ORIG
@@ -150,7 +149,6 @@ def pressEvent():
 
 
 def getNewObject():
-    print 'test'
     return cmds.duplicate(SOURCE)[0]
 
 
