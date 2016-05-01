@@ -24,8 +24,8 @@ UTIL = OpenMaya.MScriptUtil()
 
 
 kPluginCmdName = "duplicateOnSurface"
-kRotationFlag = "-r"
-kRotationFlagLong = "-rotation"
+kRotationFlag = "-nr"
+kRotationFlagLong = "-noRotation"
 
 
 # Syntax creator
@@ -52,7 +52,7 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         self.MOD_FIRST = None
         self.MOD_POINT = None
 
-        self.rotationFlag = True
+        self.NO_ROTATION = False
 
     def doIt(self, args):
 
@@ -60,7 +60,7 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         argData = OpenMaya.MArgDatabase(syntaxCreator(), args)
         self.SOURCE = argData.commandArgumentString(0)
         if argData.isFlagSet(kRotationFlag):
-            self.rotationFlag = argData.flagArgumentString(kRotationFlag, 0)
+            self.NO_ROTATION = argData.flagArgumentBool(kRotationFlag, 0)
 
         self.SPACE = OpenMaya.MSpace.kWorld
 
@@ -302,11 +302,13 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         if OP is None:
             return None
 
-        # Normal vector
-        NV, faceID = self.getNormal(OP, targetFnMesh)
-
-        # Tangent vector
-        TV = self.getTangent(faceID, targetFnMesh)
+        # Get normal vector and tangent vector
+        if self.NO_ROTATION is True:
+            NV = OpenMaya.MVector(0, 1, 0)
+            TV = OpenMaya.MVector(1, 0, 0)
+        else:
+            NV, faceID = self.getNormal(OP, targetFnMesh)
+            TV = self.getTangent(faceID, targetFnMesh)
 
         modifier = cmds.draggerContext(
             DRAGGER,
@@ -405,9 +407,10 @@ def cmdCreator():
 
 
 def initializePlugin(mObject):
-    mPlugin = OpenMayaMPx.MFnPlugin(mObject)
+    mPlugin = OpenMayaMPx.MFnPlugin(mObject, "Michitaka Inoue")
     try:
         mPlugin.registerCommand(kPluginCmdName, cmdCreator)
+        mPlugin.setVersion("0.10")
     except:
         sys.stderr.write("Failed to register command: %s\n" % kPluginCmdName)
         raise
