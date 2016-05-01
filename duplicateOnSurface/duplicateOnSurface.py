@@ -48,6 +48,7 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         self.DUPLICATED = None
         self.SOURCE = None
         self.SCALE_ORIG = None
+        self.MATRIX_ORIG = None
         self.TARGET_FNMESH = None
         self.MOD_FIRST = None
         self.MOD_POINT = None
@@ -117,13 +118,16 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         # Get origianl scale information
         self.SCALE_ORIG = cmds.getAttr(self.DUPLICATED + ".scale")[0]
 
+        self.MATRIX_ORIG = cmds.xform(self.SOURCE, q=True, matrix=True)
+
         self.TARGET_FNMESH = OpenMaya.MFnMesh(targetDagPath)
 
         transformMatrix = self.getMatrix(
             point_in_3d,
             vector_in_3d,
             self.TARGET_FNMESH,
-            self.SCALE_ORIG)
+            self.SCALE_ORIG,
+            self.MATRIX_ORIG)
 
         # Reset transform of current object
         cmds.setAttr(self.DUPLICATED + ".translate", *[0, 0, 0])
@@ -192,6 +196,7 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
             vector_in_3d,
             self.TARGET_FNMESH,
             self.SCALE_ORIG,
+            self.MATRIX_ORIG,
             length,
             degree
             )
@@ -275,8 +280,10 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
             hitBary1,
             hitBary2)
 
+        faceID = UTIL.getInt(hitFacePtr)
+
         if result is True:
-            return hitPoint
+            return hitPoint, faceID
         else:
             None
 
@@ -285,6 +292,7 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
                   mVector,
                   targetFnMesh,
                   scale_orig,
+                  matrix_orig,
                   scale_plus=1,
                   degree_plus=0.0):
 
@@ -296,7 +304,7 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
                 list : 16 values for matrixs
         """
         # Position of new object
-        OP = self.getIntersection(mPoint, mVector, targetFnMesh)
+        OP, faceID = self.getIntersection(mPoint, mVector, targetFnMesh)
 
         # If it doesn't intersect to any geometries, return None
         if OP is None:
@@ -304,10 +312,18 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
 
         # Get normal vector and tangent vector
         if self.NO_ROTATION is True:
-            NV = OpenMaya.MVector(0, 1, 0)
-            TV = OpenMaya.MVector(1, 0, 0)
+            NV = OpenMaya.MVector(
+                matrix_orig[4],
+                matrix_orig[5],
+                matrix_orig[6])
+            NV.normalize()
+            TV = OpenMaya.MVector(
+                matrix_orig[0],
+                matrix_orig[1],
+                matrix_orig[2])
+            TV.normalize()
         else:
-            NV, faceID = self.getNormal(OP, targetFnMesh)
+            NV = self.getNormal(OP, targetFnMesh)
             TV = self.getTangent(faceID, targetFnMesh)
 
         modifier = cmds.draggerContext(
@@ -395,10 +411,9 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
             normal,
             self.SPACE,
             ptr_int)
-        faceID = UTIL.getInt(ptr_int)
         normal.normalize()
 
-        return normal, faceID
+        return normal
 
 
 # Creator
