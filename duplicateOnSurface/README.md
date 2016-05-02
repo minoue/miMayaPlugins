@@ -5,20 +5,28 @@ Duplicate object  over surface based on mouse clicks
 
 ![](https://dl.dropboxusercontent.com/u/408180/git/images/duplicateOnSurface.gif)
 
-###  Flags
-| longname     | shortname | Argument types   | Properties |
+##  Flags
+| Longname     | Shortname | Argument types   | Properties |
 | :------- | :----: | :---: | :---: |
 | noRotation | nr |  bool    | C |
 
-keep origianl rotation if True. Default is False
+keep origianl rotation if True. **Default is False**.
 
-False
+* `nr=True`  
 ![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_noRot.gif)
 
- True
- ![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_withRot.gif)
+* `nr=False`  
+![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_withRot.gif)
 
-### Python examples
+## Modifiers
+
+**Scale** : Shift + drag to left/right
+
+**Rotate** : Ctrl + drag
+
+![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_mod.gif)
+
+## Python examples
 
 ```python
 from maya import cmds
