@@ -26,6 +26,10 @@ keep origianl rotation if True. **Default is False**.
 
 ![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_mod.gif)
 
+**Snap to vertices** : Ctro + Shift
+
+![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_snap.gif)
+
 ## Python examples
 
 ```python
