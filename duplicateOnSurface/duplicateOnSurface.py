@@ -15,6 +15,7 @@ from maya import OpenMaya
 from maya import OpenMayaUI
 from maya import OpenMayaMPx
 from maya import cmds
+from PySide import QtGui, QtCore
 import math
 import sys
 
@@ -52,8 +53,12 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         self.TARGET_FNMESH = None
         self.MOD_FIRST = None
         self.MOD_POINT = None
+        self.SPACE = OpenMaya.MSpace.kWorld
 
         self.NO_ROTATION = False
+
+        self.SHIFT = QtCore.Qt.ShiftModifier
+        self.CTRL = QtCore.Qt.ControlModifier
 
     def doIt(self, args):
 
@@ -62,8 +67,6 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         self.SOURCE = argData.commandArgumentString(0)
         if argData.isFlagSet(kRotationFlag):
             self.NO_ROTATION = argData.flagArgumentBool(kRotationFlag, 0)
-
-        self.SPACE = OpenMaya.MSpace.kWorld
 
         cmds.setToolTo(self.setupDragger())
 
@@ -165,7 +168,9 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         if modifier == "none":
             self.MOD_FIRST = True
 
-        if modifier == "ctrl" or modifier == "shift":
+        qtModifier = QtGui.QApplication.keyboardModifiers()
+
+        if qtModifier == self.CTRL or qtModifier == self.SHIFT:
 
             # If this is the first click of dragging
             if self.MOD_FIRST is True:
@@ -176,9 +181,9 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
 
             length, degree = self.getDragInfo(x, y)
 
-            if modifier == "ctrl":
+            if qtModifier == self.CTRL:
                 length = 1.0
-            elif modifier == "shift":
+            if qtModifier == self.SHIFT:
                 degree = 0.0
 
             # Convert
@@ -285,7 +290,7 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         if result is True:
             return hitPoint, faceID
         else:
-            None
+            return None, None
 
     def getMatrix(self,
                   mPoint,
@@ -307,8 +312,12 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         OP, faceID = self.getIntersection(mPoint, mVector, targetFnMesh)
 
         # If it doesn't intersect to any geometries, return None
-        if OP is None:
+        if OP is None and faceID is None:
             return None
+
+        qtMod = QtGui.QApplication.keyboardModifiers()
+        if qtMod == (self.CTRL | self.SHIFT):
+            OP = getClosestVertex(OP, faceID, targetFnMesh)
 
         # Get normal vector and tangent vector
         if self.NO_ROTATION is True:
@@ -326,13 +335,8 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
             NV = self.getNormal(OP, targetFnMesh)
             TV = self.getTangent(faceID, targetFnMesh)
 
-        modifier = cmds.draggerContext(
-            DRAGGER,
-            query=True,
-            modifier=True)
-
         # Ctrl-hold rotation
-        if modifier == 'ctrl':
+        if qtMod == self.CTRL:
             try:
                 rad = math.radians(degree_plus)
                 q1 = NV.x * math.sin(rad / 2)
@@ -483,3 +487,28 @@ def getDagPathFromScreen(x, y):
     else:
         tempSel.getDagPath(0, dagpath)
         return dagpath
+
+
+def getClosestVertex(point_orig, faceID, fnMesh):
+    """ Args:
+            point_orig  (OpenMaya.MFloatPoint)
+            faceID (int)
+            fnMesh (OpenMaya.MFnMesh)
+        Returns:
+            closestPoint : OpenMaya.MPoint
+    """
+
+    vertexIndexArray = OpenMaya.MIntArray()
+    fnMesh.getPolygonVertices(faceID, vertexIndexArray)
+    basePoint = OpenMaya.MPoint(point_orig)
+    closestPoint = OpenMaya.MPoint()
+    length = 99999.0
+    for index in vertexIndexArray:
+        point = OpenMaya.MPoint()
+        fnMesh.getPoint(index, point, OpenMaya.MSpace.kWorld)
+        lengthVector = point - basePoint
+        if lengthVector.length() < length:
+            length = lengthVector.length()
+            closestPoint = point
+
+    return closestPoint
