@@ -10,13 +10,13 @@ Duplicate object  over surface based on mouse clicks
 | :------- | :----: | :---: | :---: |
 | noRotation | nr |  bool    | C |
 
-keep origianl rotation if True. **Default is False**.
+keep rotation if True. **Default is True**.
 
-* `nr=True`  
-![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_noRot.gif)
-
-* `nr=False`  
+* `r=True`  
 ![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_withRot.gif)
+
+* `r=False`  
+![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_noRot.gif)
 
 ## Modifiers
 
