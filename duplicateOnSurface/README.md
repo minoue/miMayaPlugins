@@ -6,9 +6,9 @@ Duplicate object  over surface based on mouse clicks
 ![](https://dl.dropboxusercontent.com/u/408180/git/images/duplicateOnSurface.gif)
 
 ##  Flags
-| Longname     | Shortname | Argument types   | Properties |
-| :------- | :----: | :---: | :---: |
-| noRotation | nr |  bool    | C |
+| Longname     | Shortname | Argument types | Default | Properties |
+| :------- | :----: | :---: | :--: | :---: |
+| rotation | r |  bool  | True  | C |
 
 keep rotation if True. **Default is True**.
 
@@ -41,5 +41,5 @@ cmds.duplicateOnSurface("pCube1")
 cmds.duplicateOnSurface(cmds.ls(sl=True, long=True)[0])
 
 # Duplicate selected object over surface but keep original rotations.
-cmds.duplicateOnSurface(cmds.ls(sl=True, long=True)[0], noRotation=True)
+cmds.duplicateOnSurface(cmds.ls(sl=True, long=True)[0], rotation=False)
 ```
