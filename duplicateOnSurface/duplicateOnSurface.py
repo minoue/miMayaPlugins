@@ -25,8 +25,8 @@ UTIL = OpenMaya.MScriptUtil()
 
 
 kPluginCmdName = "duplicateOnSurface"
-kRotationFlag = "-nr"
-kRotationFlagLong = "-noRotation"
+kRotationFlag = "-r"
+kRotationFlagLong = "-rotation"
 
 
 # Syntax creator
@@ -55,7 +55,7 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         self.MOD_POINT = None
         self.SPACE = OpenMaya.MSpace.kWorld
 
-        self.NO_ROTATION = False
+        self.ROTATION = True
 
         self.SHIFT = QtCore.Qt.ShiftModifier
         self.CTRL = QtCore.Qt.ControlModifier
@@ -66,7 +66,7 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         argData = OpenMaya.MArgDatabase(syntaxCreator(), args)
         self.SOURCE = argData.commandArgumentString(0)
         if argData.isFlagSet(kRotationFlag):
-            self.NO_ROTATION = argData.flagArgumentBool(kRotationFlag, 0)
+            self.ROTATION = argData.flagArgumentBool(kRotationFlag, 0)
 
         cmds.setToolTo(self.setupDragger())
 
@@ -320,7 +320,7 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
             OP = getClosestVertex(OP, faceID, targetFnMesh)
 
         # Get normal vector and tangent vector
-        if self.NO_ROTATION is True:
+        if self.ROTATION is False:
             NV = OpenMaya.MVector(
                 matrix_orig[4],
                 matrix_orig[5],
