@@ -30,7 +30,7 @@ using namespace std;
 // Flags for this command
 static const char * modeFlag            = "-m";
 static const char * modeFlagLong        = "-mode";
-static const char * distanceFlag        = "-sd";
+static const char * distanceFlag        = "-d";
 static const char * distanceFlagLong    = "-searchDistance";
 
 
@@ -199,7 +199,7 @@ MStatus SnapToClosest::redoIt()
                 0,
                 false,
                 MSpace::kWorld,
-                9999,
+                999999,
                 false,
                 0,
                 hitPoint,
