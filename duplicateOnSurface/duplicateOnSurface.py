@@ -27,12 +27,18 @@ UTIL = OpenMaya.MScriptUtil()
 kPluginCmdName = "duplicateOnSurface"
 kRotationFlag = "-r"
 kRotationFlagLong = "-rotation"
+kDummyFlag = "-d"
+kDummyFlagLong = "-dummy"
 
 
 # Syntax creator
 def syntaxCreator():
     syntax = OpenMaya.MSyntax()
     syntax.addArg(OpenMaya.MSyntax.kString)
+    syntax.addFlag(
+        kDummyFlag,
+        kDummyFlagLong,
+        OpenMaya.MSyntax.kBoolean)
     syntax.addFlag(
         kRotationFlag,
         kRotationFlagLong,
@@ -65,7 +71,7 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
         # Parse the arguments.
         argData = OpenMaya.MArgDatabase(syntaxCreator(), args)
         self.SOURCE = argData.commandArgumentString(0)
-        if argData.isFlagSet(kRotationFlag):
+        if argData.isFlagSet(kRotationFlag) is True:
             self.ROTATION = argData.flagArgumentBool(kRotationFlag, 0)
 
         cmds.setToolTo(self.setupDragger())
