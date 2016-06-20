@@ -1,7 +1,7 @@
-# DuplicateOnSurface
+# DuplicateOverSurface
 
 
-Duplicate object  over surface based on mouse clicks
+Duplicate object over surface based on mouse clicks.
 
 ![](https://dl.dropboxusercontent.com/u/408180/git/images/duplicateOnSurface.gif)
 
@@ -30,16 +30,21 @@ keep rotation if True. **Default is True**.
 
 ![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_snap.gif)
 
+## Caution
+**Target object must have UVs. If object has no UVs or bad UVs, the command will fail to execute or snap object will have unintentional deformation.  
+スナップ対象のオブジェクトにUVが無いか、または不正なUVの場合、コマンドの実行に失敗します。複製オブジェクトが意図しない不必要な変形をしてしまいます。**
+
+
 ## Python examples
 
 ```python
 from maya import cmds
 # Duplicate pCube1 over surface.
-cmds.duplicateOnSurface("pCube1")
+cmds.duplicateOverSurface("pCube1")
 
 # Duplicate selected object over surface.
-cmds.duplicateOnSurface(cmds.ls(sl=True, long=True)[0])
+cmds.duplicateOverSurface(cmds.ls(sl=True, long=True)[0])
 
 # Duplicate selected object over surface but keep original rotations.
-cmds.duplicateOnSurface(cmds.ls(sl=True, long=True)[0], rotation=False)
+cmds.duplicateOverSurface(cmds.ls(sl=True, long=True)[0], rotation=False)
 ```
