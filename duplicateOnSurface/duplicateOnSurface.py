@@ -20,11 +20,11 @@ import math
 import sys
 
 
-DRAGGER = "duplicateOnSuraface"
+DRAGGER = "duplicateOverSurfaceDragger"
 UTIL = OpenMaya.MScriptUtil()
 
 
-kPluginCmdName = "duplicateOnSurface"
+kPluginCmdName = "duplicateOverSurface"
 kRotationFlag = "-r"
 kRotationFlagLong = "-rotation"
 kDummyFlag = "-d"
@@ -46,10 +46,10 @@ def syntaxCreator():
     return syntax
 
 
-class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
+class DuplicateOverSurface(OpenMayaMPx.MPxCommand):
 
     def __init__(self):
-        super(DuplicateOnSurface, self).__init__()
+        super(DuplicateOverSurface, self).__init__()
 
         self.ANCHOR_POINT = None
         self.DUPLICATED = None
@@ -428,7 +428,7 @@ class DuplicateOnSurface(OpenMayaMPx.MPxCommand):
 
 # Creator
 def cmdCreator():
-    return OpenMayaMPx.asMPxPtr(DuplicateOnSurface())
+    return OpenMayaMPx.asMPxPtr(DuplicateOverSurface())
 
 
 def initializePlugin(mObject):
