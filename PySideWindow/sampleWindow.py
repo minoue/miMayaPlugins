@@ -8,6 +8,21 @@ def getMayaWindow():
     return shiboken.wrapInstance(long(ptr), QtGui.QMainWindow)
 
 
+class Content(QtGui.QWidget):
+
+    def __init__(self, parent=None):
+        super(Content, self).__init__(parent)
+
+        self.button = QtGui.QPushButton("button")
+        self.le = QtGui.QLineEdit("lineedit")
+
+        layout = QtGui.QBoxLayout(QtGui.QBoxLayout.TopToBottom)
+        layout.addWidget(self.button)
+        layout.addWidget(self.le)
+
+        self.setLayout(layout)
+
+
 class CentralWidget(QtGui.QWidget):
 
     def __init__(self, parent=None):
@@ -17,13 +32,14 @@ class CentralWidget(QtGui.QWidget):
         self.layoutUI()
 
     def createUI(self):
-        self.button = QtGui.QPushButton("button")
-        self.le = QtGui.QLineEdit("lineedit")
+
+        self.tabWidget = QtGui.QTabWidget()
+        self.tabWidget.addTab(Content(), "Tab1")
+        self.tabWidget.addTab(Content(), "Tab2")
 
     def layoutUI(self):
         mainLayout = QtGui.QBoxLayout(QtGui.QBoxLayout.TopToBottom)
-        mainLayout.addWidget(self.button)
-        mainLayout.addWidget(self.le)
+        mainLayout.addWidget(self.tabWidget)
 
         self.setLayout(mainLayout)
 
