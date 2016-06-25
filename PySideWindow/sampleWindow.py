@@ -89,38 +89,64 @@ class MainWindow(QtGui.QMainWindow):
             'Awesome window\n')
 
 
-def main():
-    """ main """
+def mainWindow(func):
 
-    global win
-    try:
-        win.close()
-    except:
-        pass
+    def __wrapper(*args):
+        """ close window if exist """
 
-    win = MainWindow()
-    win.show()
-    win.raise_()
+        global win
+        try:
+            win.close()
+        except:
+            pass
+
+        # New main window object
+        win = MainWindow()
+        func(win)
+
+    return __wrapper
 
 
-def dock():
-    """ dock """
+@mainWindow
+def main(mainWindow):
+    """ Show single window
+        args
+            mainWindow : QtGui.QMainWindow
+        return
+            None
+    """
 
-    global win
-    try:
-        win.close()
-    except:
-        pass
+    mainWindow.show()
+    mainWindow.raise_()
 
-    win = MainWindow()
-    win.setObjectName('sampleWindowObject')
+
+@mainWindow
+def dock(mainWindow):
+    """ Show dockable window
+        args
+            mainWindow : QtGui.QMainWindow
+        return
+            None
+    """
+
+    mainWindow.setObjectName('sampleWindowObject')
 
     DOCK_NAME = "dock_name"
 
     from pymel import all as pm
+
     if pm.dockControl(DOCK_NAME, q=True, ex=1):
         pm.deleteUI(DOCK_NAME)
-    floatingLayout = pm.paneLayout(configuration='single', w=300)
+
+    if pm.window('dummyWindow', q=True, ex=1):
+        pm.deleteUI('dummyWindow')
+
+    pm.window('dummyWindow')
+    pm.columnLayout()
+    floatingLayout = pm.paneLayout(
+        configuration='single',
+        w=300)
+    pm.setParent('..')
 
     pm.dockControl(
         DOCK_NAME,
