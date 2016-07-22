@@ -1,6 +1,6 @@
 //
-//  snapToClosest.cpp
-//  SnapToClosest
+// snapToClosest.cpp
+// SnapToClosest
 //
 //
 // ----------------------------------------------------------------------------
@@ -22,6 +22,8 @@
 #include <maya/MFloatVector.h>
 #include <maya/MVector.h>
 #include <maya/MArgDatabase.h>
+#include <maya/MMeshIntersector.h>
+#include <maya/MMatrix.h>
 
 
 using namespace std;
@@ -37,7 +39,7 @@ static const char * distanceFlagLong    = "-searchDistance";
 // Constructor   
 SnapToClosest::SnapToClosest() : 
     dummyBool(true),
-    searchDistance(10)
+    searchDistance(1000)
 {}
 
 
@@ -125,6 +127,13 @@ MStatus SnapToClosest::redoIt()
     // Create mesh vertex iterator
     MItMeshVertex vIter(mDagPath_components, components);
 
+    // Setup intersector
+    MMatrix matrix = mDagPath_target.inclusiveMatrix();
+    MMeshIntersector intersector;
+    mDagPath_target.extendToShape();
+    MObject targetMObj = mDagPath_target.node();
+    intersector.create(targetMObj, matrix);
+
     // Iteration start
     for ( ; !vIter.isDone(); vIter.next() ) {
 
@@ -135,18 +144,22 @@ MStatus SnapToClosest::redoIt()
         // MVector to check the distance between current point and target point
         MVector distanceVector;     
 
-
         //current vertex index 
         int currentIndex = vIter.index();
 
         // polygon face ID 
         int faceIndex;
 
-        fnMeshTarget.getClosestPoint(
+        MPointOnMesh pointInfo;
+
+        intersector.getClosestPoint(
             currentPosition,
-            closestPoint,
-            MSpace::kWorld,
-            &faceIndex);
+            pointInfo);
+
+        faceIndex = pointInfo.faceIndex();
+        closestPoint = pointInfo.getPoint();
+        // Apply matrix of target mesh
+        closestPoint = closestPoint * matrix;
 
         // If vertex mode, snap to closest verteces.
         if (mode == "vertex") {
