@@ -1,5 +1,7 @@
 from PySide import QtGui, QtCore
+from maya import OpenMayaUI
 from maya import cmds
+import shiboken
 
 
 def getMayaWindow():
@@ -9,10 +11,10 @@ def getMayaWindow():
 
 class SnapWindow(QtGui.QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=getMayaWindow()):
         super(SnapWindow, self).__init__(parent)
 
-        self.setWindowTitle("Awesome Snap")
+        self.setWindowTitle("Snap")
         self.setWindowFlags(QtCore.Qt.Tool)
 
         self.createUI()
