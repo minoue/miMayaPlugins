@@ -34,6 +34,8 @@ kRotationFlag = "-r"
 kRotationFlagLong = "-rotation"
 kDummyFlag = "-d"
 kDummyFlagLong = "-dummy"
+kInstanceFlag = "-ilf"
+kInstanceFlagLong = "-instanceLeaf"
 
 
 # Syntax creator
@@ -47,6 +49,10 @@ def syntaxCreator():
     syntax.addFlag(
         kRotationFlag,
         kRotationFlagLong,
+        OpenMaya.MSyntax.kBoolean)
+    syntax.addFlag(
+        kInstanceFlag,
+        kInstanceFlagLong,
         OpenMaya.MSyntax.kBoolean)
     return syntax
 
@@ -67,6 +73,7 @@ class DuplicateOverSurface(OpenMayaMPx.MPxCommand):
         self.SPACE = OpenMaya.MSpace.kWorld
 
         self.ROTATION = True
+        self.InstanceFlag = False
 
         self.SHIFT = QtCore.Qt.ShiftModifier
         self.CTRL = QtCore.Qt.ControlModifier
@@ -78,6 +85,9 @@ class DuplicateOverSurface(OpenMayaMPx.MPxCommand):
         self.SOURCE = argData.commandArgumentString(0)
         if argData.isFlagSet(kRotationFlag) is True:
             self.ROTATION = argData.flagArgumentBool(kRotationFlag, 0)
+
+        if argData.isFlagSet(kInstanceFlag) is True:
+            self.InstanceFlag = argData.flagArgumentBool(kInstanceFlag, 0)
 
         cmds.setToolTo(self.setupDragger())
 
@@ -149,13 +159,16 @@ class DuplicateOverSurface(OpenMayaMPx.MPxCommand):
         location = [-i for i
                     in cmds.xform(self.DUPLICATED, q=True, ws=True, rp=True)]
         cmds.setAttr(self.DUPLICATED + ".translate", *location)
-        cmds.makeIdentity(self.DUPLICATED, apply=True, t=True)
+
+        # Can't apply freeze to instances
+        if self.InstanceFlag is not True:
+            cmds.makeIdentity(self.DUPLICATED, apply=True, t=True)
 
         # Apply transformMatrix to the new object
         cmds.xform(self.DUPLICATED, matrix=transformMatrix)
 
     def getNewObject(self):
-        return cmds.duplicate(self.SOURCE)[0]
+        return cmds.duplicate(self.SOURCE, ilf=self.InstanceFlag)[0]
 
     def dragEvent(self):
         """ Event while dragging a 3d view """
