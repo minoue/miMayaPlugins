@@ -15,7 +15,12 @@ from maya import OpenMaya
 from maya import OpenMayaUI
 from maya import OpenMayaMPx
 from maya import cmds
-from PySide import QtGui, QtCore
+try:
+    from PySide.QtGui import QApplication
+    from PySide import QtCore
+except ImportError:
+    from PySide2.QtWidgets import QApplication
+    from PySide2 import QtCore
 import math
 import sys
 
@@ -174,7 +179,7 @@ class DuplicateOverSurface(OpenMayaMPx.MPxCommand):
         if modifier == "none":
             self.MOD_FIRST = True
 
-        qtModifier = QtGui.QApplication.keyboardModifiers()
+        qtModifier = QApplication.keyboardModifiers()
 
         if qtModifier == self.CTRL or qtModifier == self.SHIFT:
 
@@ -321,7 +326,7 @@ class DuplicateOverSurface(OpenMayaMPx.MPxCommand):
         if OP is None and faceID is None:
             return None
 
-        qtMod = QtGui.QApplication.keyboardModifiers()
+        qtMod = QApplication.keyboardModifiers()
         if qtMod == (self.CTRL | self.SHIFT):
             OP = getClosestVertex(OP, faceID, targetFnMesh)
 
