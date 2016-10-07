@@ -136,14 +136,9 @@ class DuplicateOverSurface(OpenMayaMPx.MPxCommand):
         if targetDagPath is None:
             return
 
-        # Create new object to snap
-        self.DUPLICATED = self.getNewObject()
-
         # Get origianl scale information
-        self.SCALE_ORIG = cmds.getAttr(self.DUPLICATED + ".scale")[0]
-
+        self.SCALE_ORIG = cmds.getAttr(self.SOURCE + ".scale")[0]
         self.MATRIX_ORIG = cmds.xform(self.SOURCE, q=True, matrix=True)
-
         self.TARGET_FNMESH = OpenMaya.MFnMesh(targetDagPath)
 
         transformMatrix = self.getMatrix(
@@ -152,6 +147,12 @@ class DuplicateOverSurface(OpenMayaMPx.MPxCommand):
             self.TARGET_FNMESH,
             self.SCALE_ORIG,
             self.MATRIX_ORIG)
+
+        if transformMatrix is None:
+            return
+
+        # Create new object to snap
+        self.DUPLICATED = self.getNewObject()
 
         # Reset transform of current object
         cmds.setAttr(self.DUPLICATED + ".translate", *[0, 0, 0])
