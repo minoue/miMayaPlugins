@@ -1,15 +1,18 @@
-from PySide import QtGui, QtCore
+from Qt import QtWidgets, QtCore
 from maya import OpenMayaUI
 from maya import cmds
-import shiboken
+try:
+    import shiboken
+except ImportError:
+    import shiboken2 as shiboken
 
 
 def getMayaWindow():
     ptr = OpenMayaUI.MQtUtil.mainWindow()
-    return shiboken.wrapInstance(long(ptr), QtGui.QMainWindow)
+    return shiboken.wrapInstance(long(ptr), QtWidgets.QMainWindow)
 
 
-class SnapWindow(QtGui.QWidget):
+class SnapWindow(QtWidgets.QWidget):
 
     def __init__(self, parent=getMayaWindow()):
         super(SnapWindow, self).__init__(parent)
@@ -21,17 +24,17 @@ class SnapWindow(QtGui.QWidget):
         self.layoutUI()
 
     def createUI(self):
-        self.lineEdit = QtGui.QLineEdit()
-        self.setButton = QtGui.QPushButton("Set")
+        self.lineEdit = QtWidgets.QLineEdit()
+        self.setButton = QtWidgets.QPushButton("Set")
         self.setButton.clicked.connect(self.setter)
 
-        self.lockCheckBox = QtGui.QCheckBox("Lock")
+        self.lockCheckBox = QtWidgets.QCheckBox("Lock")
         self.lockCheckBox.stateChanged.connect(self.lock)
 
-        self.modeRadioGrp = QtGui.QButtonGroup()
-        self.vertexMode = QtGui.QRadioButton('Vertex')
-        self.normalMode = QtGui.QRadioButton('Normal')
-        self.surfaceMode = QtGui.QRadioButton('Surface')
+        self.modeRadioGrp = QtWidgets.QButtonGroup()
+        self.vertexMode = QtWidgets.QRadioButton('Vertex')
+        self.normalMode = QtWidgets.QRadioButton('Normal')
+        self.surfaceMode = QtWidgets.QRadioButton('Surface')
         self.normalMode.setChecked(True)
 
         self.modeRadioGrp.addButton(self.vertexMode)
@@ -41,33 +44,33 @@ class SnapWindow(QtGui.QWidget):
         self.modeRadioGrp.setId(self.normalMode, 2)
         self.modeRadioGrp.setId(self.surfaceMode, 3)
 
-        self.distanceLE = QtGui.QLineEdit("99999")
-        self.distanceLock = QtGui.QCheckBox("Lock")
+        self.distanceLE = QtWidgets.QLineEdit("99999")
+        self.distanceLock = QtWidgets.QCheckBox("Lock")
         self.distanceLock.stateChanged.connect(self.lockDistance)
 
-        self.snapButton = QtGui.QPushButton("Snap")
+        self.snapButton = QtWidgets.QPushButton("Snap")
         self.snapButton.setFixedHeight(40)
         self.snapButton.clicked.connect(self.snap)
 
     def layoutUI(self):
-        topLayout = QtGui.QBoxLayout(QtGui.QBoxLayout.LeftToRight)
-        topLayout.addWidget(QtGui.QLabel("Snap Target : "))
+        topLayout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
+        topLayout.addWidget(QtWidgets.QLabel("Snap Target : "))
         topLayout.addWidget(self.lineEdit)
         topLayout.addWidget(self.setButton)
         topLayout.addWidget(self.lockCheckBox)
 
-        modeLayout = QtGui.QBoxLayout(QtGui.QBoxLayout.LeftToRight)
-        modeLayout.addWidget(QtGui.QLabel("Snap Mode : "))
+        modeLayout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
+        modeLayout.addWidget(QtWidgets.QLabel("Snap Mode : "))
         modeLayout.addWidget(self.vertexMode)
         modeLayout.addWidget(self.normalMode)
         modeLayout.addWidget(self.surfaceMode)
 
-        distLayout = QtGui.QBoxLayout(QtGui.QBoxLayout.LeftToRight)
-        distLayout.addWidget(QtGui.QLabel("Snap Max Distance : "))
+        distLayout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
+        distLayout.addWidget(QtWidgets.QLabel("Snap Max Distance : "))
         distLayout.addWidget(self.distanceLE)
         distLayout.addWidget(self.distanceLock)
 
-        mainLayout = QtGui.QBoxLayout(QtGui.QBoxLayout.TopToBottom)
+        mainLayout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
         mainLayout.addLayout(topLayout)
         mainLayout.addLayout(modeLayout)
         mainLayout.addLayout(distLayout)
@@ -115,7 +118,11 @@ class SnapWindow(QtGui.QWidget):
         self.lineEdit.setText(cmds.ls(sl=True, fl=True, long=True)[0])
 
 
-if __name__ == "__main__":
+def main():
     snap = SnapWindow()
     snap.show()
     snap.raise_()
+
+
+if __name__ == "__main__":
+    main()
