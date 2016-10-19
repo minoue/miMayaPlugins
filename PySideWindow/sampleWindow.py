@@ -1,14 +1,17 @@
-from PySide import QtGui, QtCore
+from Qt import QtGui, QtCore, QtWidgets
 from maya import OpenMayaUI
-import shiboken
+try:
+    import shiboken
+except ImportError:
+    import shiboken2 as shiboken
 
 
 def getMayaWindow():
     ptr = OpenMayaUI.MQtUtil.mainWindow()
-    return shiboken.wrapInstance(long(ptr), QtGui.QMainWindow)
+    return shiboken.wrapInstance(long(ptr), QtWidgets.QMainWindow)
 
 
-class Content(QtGui.QWidget):
+class Content(QtWidgets.QWidget):
     """ Contents widget for tabs """
 
     def __init__(self, parent=None):
@@ -16,11 +19,11 @@ class Content(QtGui.QWidget):
 
         super(Content, self).__init__(parent)
 
-        self.button = QtGui.QPushButton("button")
-        self.le = QtGui.QLineEdit("lineedit")
-        self.textEdit = QtGui.QTextEdit("text edit")
+        self.button = QtWidgets.QPushButton("button")
+        self.le = QtWidgets.QLineEdit("lineedit")
+        self.textEdit = QtWidgets.QTextEdit("text edit")
 
-        layout = QtGui.QBoxLayout(QtGui.QBoxLayout.TopToBottom)
+        layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
         layout.addWidget(self.button)
         layout.addWidget(self.le)
         layout.addWidget(self.textEdit)
@@ -28,7 +31,7 @@ class Content(QtGui.QWidget):
         self.setLayout(layout)
 
 
-class CentralWidget(QtGui.QWidget):
+class CentralWidget(QtWidgets.QWidget):
     """ Central widget """
 
     def __init__(self, parent=None):
@@ -42,26 +45,26 @@ class CentralWidget(QtGui.QWidget):
     def createUI(self):
         """ Crete widgets """
 
-        self.tabWidget = QtGui.QTabWidget()
+        self.tabWidget = QtWidgets.QTabWidget()
         self.tabWidget.addTab(Content(), "Tab1")
         self.tabWidget.addTab(Content(), "Tab2")
 
     def layoutUI(self):
         """ Layout widgets """
 
-        mainLayout = QtGui.QBoxLayout(QtGui.QBoxLayout.TopToBottom)
+        mainLayout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
         mainLayout.addWidget(self.tabWidget)
 
         self.setLayout(mainLayout)
 
 
-class MainWindow(QtGui.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     """ Main window """
 
     def closeExistingWindow(self):
         """ Close window if exists """
 
-        for qt in QtGui.QApplication.topLevelWidgets():
+        for qt in QtWidgets.QApplication.topLevelWidgets():
             try:
                 if qt.__class__.__name__ == self.__class__.__name__:
                     qt.close()
@@ -89,7 +92,7 @@ class MainWindow(QtGui.QMainWindow):
         menu = self.menuBar()
 
         # About
-        aboutAction = QtGui.QAction("&About", self)
+        aboutAction = QtWidgets.QAction("&About", self)
         aboutAction.setStatusTip('About this script')
         aboutAction.triggered.connect(self.showAbout)
 
@@ -100,7 +103,7 @@ class MainWindow(QtGui.QMainWindow):
     def showAbout(self):
         """ about message """
 
-        QtGui.QMessageBox.about(
+        QtWidgets.QMessageBox.about(
             self,
             'About ',
             'Awesome window\n')
@@ -129,7 +132,7 @@ def mainWindow(func):
 def main(mainWindow):
     """ Show single window
         args
-            mainWindow : QtGui.QMainWindow
+            mainWindow : QtWidgets.QMainWindow
         return
             None
     """
@@ -142,7 +145,7 @@ def main(mainWindow):
 def dock(mainWindow):
     """ Show dockable window
         args
-            mainWindow : QtGui.QMainWindow
+            mainWindow : QtWidgets.QMainWindow
         return
             None
     """
