@@ -39,6 +39,12 @@ class SamplePyCmd(OpenMayaMPx.MPxCommand):
             print 'verbose mode'
             print self.cmdArg
 
+    def redoIt(self):
+        pass
+
+    def isUndoable(self):
+        return True
+
 
 # Creator
 def cmdCreator():
