@@ -8,7 +8,6 @@ kVerboseFlag = "-v"
 kVerboseLongFlag = "-verbose"
 
 
-# command
 class SamplePyCmd(OpenMayaMPx.MPxCommand):
 
     def __init__(self):
@@ -49,19 +48,36 @@ class SamplePyCmd(OpenMayaMPx.MPxCommand):
 # Creator
 def cmdCreator():
     # Create the command
-    return OpenMayaMPx.asMPxPtr(SamplePyCmd())
+    """
+    
+    Return:
+        pointer to the command
+    
+    """
+    ptr = OpenMayaMPx.asMPxPtr(SamplePyCmd())
+    return ptr
 
 
-# Syntax creator
 def syntaxCreator():
+    """ Syntax creator
+    
+    Return:
+        syntax (OpenMaya.MSyntax): return value
+    
+    """
     syntax = OpenMaya.MSyntax()
     syntax.addArg(OpenMaya.MSyntax.kString)
     syntax.addFlag(kVerboseFlag, kVerboseLongFlag, OpenMaya.MSyntax.kBoolean)
     return syntax
 
 
-# Initialize the script plug-in
 def initializePlugin(mobject):
+    """ Initialize the script plug-in
+
+    Args:
+        mobject (OpenMaya.MObject):
+
+    """
     mplugin = OpenMayaMPx.MFnPlugin(mobject, "Name", "1.0", "Any")
     try:
         mplugin.registerCommand(kPluginCmdName, cmdCreator, syntaxCreator)
@@ -70,8 +86,13 @@ def initializePlugin(mobject):
         raise
 
 
-# Uninitialize the script plug-in
 def uninitializePlugin(mobject):
+    """ Uninitialize the script plug-in
+    
+    Args:
+        mobject (OpenMaya.MObject):
+    
+    """
     mplugin = OpenMayaMPx.MFnPlugin(mobject)
     try:
         mplugin.deregisterCommand(kPluginCmdName)
