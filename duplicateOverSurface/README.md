@@ -3,7 +3,7 @@
 
 Duplicate object over surface based on mouse clicks.
 
-![](https://dl.dropboxusercontent.com/u/408180/git/images/duplicateOnSurface.gif)
+![](https://github.com/minoue/miMayaUtils/blob/media/duplicateOverSurface/dos_demo.gif)
 
 ## Install
 Copy duplicateOverSurface.py to you plug-ins directory.
@@ -16,10 +16,10 @@ Copy duplicateOverSurface.py to you plug-ins directory.
 keep rotation if True. **Default is True**.
 
 * `r=True`  
-![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_withRot.gif)
+![](https://github.com/minoue/miMayaUtils/blob/media/duplicateOverSurface/dos_withRot.gif)
 
 * `r=False`  
-![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_noRot.gif)
+![](https://github.com/minoue/miMayaUtils/blob/media/duplicateOverSurface/dos_noRot.gif)
 
 ## Modifiers
 
@@ -27,11 +27,11 @@ keep rotation if True. **Default is True**.
 
 **Rotate** : Ctrl + drag
 
-![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_mod.gif)
+![](https://github.com/minoue/miMayaUtils/blob/media/duplicateOverSurface/dos_mod.gif)
 
 **Snap to vertices** : Ctrl + Shift
 
-![](https://dl.dropboxusercontent.com/u/408180/git/images/dos_snap.gif)
+![](https://github.com/minoue/miMayaUtils/blob/media/duplicateOverSurface/dos_snap.gif)
 
 ## Caution
 
@@ -41,9 +41,9 @@ keep rotation if True. **Default is True**.
 
 ### Surface normal
 * Target normal soften  
-![](https://dl.dropboxusercontent.com/u/408180/git/images/normalSoft.gif)
+![](https://github.com/minoue/miMayaUtils/blob/media/duplicateOverSurface/dos_normalSoft.gif)
 * Target normal harden  
-![](https://dl.dropboxusercontent.com/u/408180/git/images/normalHard.gif)
+![](https://github.com/minoue/miMayaUtils/blob/media/duplicateOverSurface/dos_normalHard.gif)
 
 ## Python examples
 
