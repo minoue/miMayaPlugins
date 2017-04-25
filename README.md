@@ -4,13 +4,13 @@
 
 ## duplicateOnSurface
 
-![](https://github.com/minoue/miMayaUtils/blob/media/duplicateOverSurface/dos_demo.gif)
+<img src="https://github.com/minoue/miMayaUtils/blob/media/duplicateOverSurface/dos_demo.gif" width="350">
 
 ## randomPointOnMesh
 
 ## snapToClosest
-<img src="https://github.com/minoue/miMayaUtils/blob/media/snapToClosest/normal.gif" alt="Drawing" style="width: 300;"/>
-<img src="https://github.com/minoue/miMayaUtils/blob/media/snapToClosest/surface.gif" alt="Drawing" style="width: 300;"/>
-<img src="https://github.com/minoue/miMayaUtils/blob/media/snapToClosest/vertex.gif" alt="Drawing" style="width: 300;"/>
+<img src="https://github.com/minoue/miMayaUtils/blob/media/snapToClosest/normal.gif" width="350">
+<img src="https://github.com/minoue/miMayaUtils/blob/media/snapToClosest/surface.gif" width="350">
+<img src="https://github.com/minoue/miMayaUtils/blob/media/snapToClosest/vertex.gif" width="350">
 
 ## transferUV
