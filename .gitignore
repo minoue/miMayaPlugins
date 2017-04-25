@@ -1,0 +1,11 @@
+*.un~
+*.gch
+*.txt
+tags
+*.pyc
+*.attr
+*.DS_Store
+tags
+ctags
+build/
+modules/
