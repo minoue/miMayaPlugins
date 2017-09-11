@@ -1,22 +1,24 @@
-#include <maya/MSelectionList.h>
-#include <maya/MItMeshPolygon.h>
-#include <maya/MStringArray.h>
-#include <maya/MPointArray.h>
-#include <maya/MIntArray.h>
-#include <maya/MArgList.h>
-#include <maya/MGlobal.h>
-#include <maya/MString.h>
-#include <map>
 #include "uvChecker.h"
 #include "uvPoint.h"
+#include <map>
+#include <maya/MArgList.h>
+#include <maya/MGlobal.h>
+#include <maya/MIntArray.h>
+#include <maya/MItMeshPolygon.h>
+#include <maya/MPointArray.h>
+#include <maya/MSelectionList.h>
+#include <maya/MString.h>
+#include <maya/MStringArray.h>
 
-UvChecker::UvChecker() {
+UvChecker::UvChecker()
+{
 }
 
-UvChecker::~UvChecker() {
+UvChecker::~UvChecker()
+{
 }
 
-MStatus UvChecker::doIt( const MArgList& args)
+MStatus UvChecker::doIt(const MArgList& args)
 {
     MStatus status;
 
@@ -39,7 +41,8 @@ MStatus UvChecker::doIt( const MArgList& args)
     return redoIt();
 }
 
-MStatus UvChecker::redoIt() {
+MStatus UvChecker::redoIt()
+{
     MItMeshPolygon itPoly(mDagPath);
     MStringArray resultArray;
 
@@ -53,14 +56,14 @@ MStatus UvChecker::redoIt() {
         itPoly.getVertices(vtxArray);
 
         numVertices = vtxArray.length();
-        for (int i=0; i<numVertices; i++) {
+        for (int i = 0; i < numVertices; i++) {
             vtxMap[vtxArray[i]] = i;
         }
 
         MPointArray pointArray;
         MIntArray intArray;
 
-        for (int i=0; i<numTriangles; i++) {
+        for (int i = 0; i < numTriangles; i++) {
             // Each triangles
             UVPoint uvPointArray[3];
 
@@ -68,7 +71,7 @@ MStatus UvChecker::redoIt() {
             float u;
             float v;
             int uvId;
-            for (int n=0; n<intArray.length(); n++) {
+            for (int n = 0; n < intArray.length(); n++) {
                 int localIndex = vtxMap[intArray[n]];
                 itPoly.getUVIndex(localIndex, uvId, u, v);
                 UVPoint point(u, v);
@@ -82,11 +85,7 @@ MStatus UvChecker::redoIt() {
             float& Cx = uvPointArray[2].u;
             float& Cy = uvPointArray[2].v;
 
-            float area = (
-                    (Ax * (By - Cy)) +
-                    (Bx * (Cy - Ay)) +
-                    (Cx * (Ay - By))
-                    ) / 2;
+            float area = ((Ax * (By - Cy)) + (Bx * (Cy - Ay)) + (Cx * (Ay - By))) / 2;
 
             if (area < 0) {
                 MString index;
@@ -102,15 +101,17 @@ MStatus UvChecker::redoIt() {
     return MS::kSuccess;
 }
 
-MStatus UvChecker::undoIt() {
+MStatus UvChecker::undoIt()
+{
     return MS::kSuccess;
 }
 
-bool UvChecker::isUndoable() const {
+bool UvChecker::isUndoable() const
+{
     return false;
 }
 
 void* UvChecker::creater()
 {
     return new UvChecker;
-}                                           
+}

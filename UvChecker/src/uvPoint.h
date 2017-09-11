@@ -1,7 +1,6 @@
 #ifndef __UVPOINT_H__
 #define __UVPOINT_H__
 
-
 class UVPoint {
 public:
     UVPoint();
@@ -10,6 +9,5 @@ public:
     float u;
     float v;
 };
-
 
 #endif /* defined(__UVPOINT_H__) */

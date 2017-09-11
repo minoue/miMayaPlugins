@@ -1,12 +1,15 @@
 #include "uvPoint.h"
 
-UVPoint::UVPoint() {
+UVPoint::UVPoint()
+{
 }
 
-UVPoint::UVPoint(float u, float v) {
+UVPoint::UVPoint(float u, float v)
+{
     this->u = u;
     this->v = v;
 }
 
-UVPoint::~UVPoint() {
+UVPoint::~UVPoint()
+{
 }
