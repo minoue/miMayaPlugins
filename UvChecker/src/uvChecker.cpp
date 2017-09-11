@@ -36,6 +36,10 @@ MStatus UvChecker::doIt( const MArgList& args)
     sel.add(argument);
     sel.getDagPath(0, mDagPath);
 
+    return redoIt();
+}
+
+MStatus UvChecker::redoIt() {
     MItMeshPolygon itPoly(mDagPath);
     MStringArray resultArray;
 
@@ -95,10 +99,6 @@ MStatus UvChecker::doIt( const MArgList& args)
     }
 
     MPxCommand::setResult(resultArray);
-    return redoIt();
-}
-
-MStatus UvChecker::redoIt() {
     return MS::kSuccess;
 }
 
