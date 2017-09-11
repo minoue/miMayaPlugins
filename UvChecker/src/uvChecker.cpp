@@ -20,24 +20,20 @@ MStatus UvChecker::doIt( const MArgList& args)
 {
     MStatus status;
 
-    // if (args.length() != 1) {
-    //     MGlobal::displayError("Need one arg");
-    //     return MStatus::kFailure;
-    // }
+    if (args.length() != 1) {
+        MGlobal::displayError("Need one arg");
+        return MStatus::kFailure;
+    }
 
     // arg
-    // MString argument = args.asString(0, &status);
-    // if (status != MS::kSuccess) {
-    //     return MStatus::kFailure;
-    // }
-    // CHECK_MSTATUS_AND_RETURN_IT(status);
-
-    // Show arguments
-    // MString message = "Argument :" + argument;
-    // MGlobal::displayInfo(message);
+    MString argument = args.asString(0, &status);
+    if (status != MS::kSuccess) {
+        return MStatus::kFailure;
+    }
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     MSelectionList sel;
-    MGlobal::getActiveSelectionList(sel);
+    sel.add(argument);
     sel.getDagPath(0, mDagPath);
 
     MItMeshPolygon itPoly(mDagPath);
