@@ -71,7 +71,7 @@ MStatus UvChecker::redoIt()
             float u;
             float v;
             int uvId;
-            for (int n = 0; n < intArray.length(); n++) {
+            for (unsigned int n = 0; n < intArray.length(); n++) {
                 int localIndex = vtxMap[intArray[n]];
                 itPoly.getUVIndex(localIndex, uvId, u, v);
                 UVPoint point(u, v);
