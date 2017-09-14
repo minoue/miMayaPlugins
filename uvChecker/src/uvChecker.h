@@ -14,6 +14,8 @@ public:
     bool isUndoable() const;
     static void* creater();
 
+    MStatus findOverlaps();
+
 private:
     MDagPath mDagPath;
 };

@@ -18,31 +18,10 @@ UvChecker::~UvChecker()
 {
 }
 
-MStatus UvChecker::doIt(const MArgList& args)
+MStatus UvChecker::findOverlaps()
 {
     MStatus status;
 
-    if (args.length() != 1) {
-        MGlobal::displayError("Need one arg");
-        return MStatus::kFailure;
-    }
-
-    // arg
-    MString argument = args.asString(0, &status);
-    if (status != MS::kSuccess) {
-        return MStatus::kFailure;
-    }
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-
-    MSelectionList sel;
-    sel.add(argument);
-    sel.getDagPath(0, mDagPath);
-
-    return redoIt();
-}
-
-MStatus UvChecker::redoIt()
-{
     MItMeshPolygon itPoly(mDagPath);
     MStringArray resultArray;
 
@@ -96,8 +75,38 @@ MStatus UvChecker::redoIt()
         }
         vtxMap.clear();
     }
-
     MPxCommand::setResult(resultArray);
+
+    return status;
+}
+
+MStatus UvChecker::doIt(const MArgList& args)
+{
+    MStatus status;
+
+    if (args.length() != 1) {
+        MGlobal::displayError("Need one arg");
+        return MStatus::kFailure;
+    }
+
+    // arg
+    MString argument = args.asString(0, &status);
+    if (status != MS::kSuccess) {
+        return MStatus::kFailure;
+    }
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    MSelectionList sel;
+    sel.add(argument);
+    sel.getDagPath(0, mDagPath);
+
+    return redoIt();
+}
+
+MStatus UvChecker::redoIt()
+{
+    MStatus status;
+    findOverlaps();
     return MS::kSuccess;
 }
 
