@@ -1,6 +1,7 @@
 #include "uvChecker.h"
 #include "uvPoint.h"
 #include <map>
+#include <maya/MArgDatabase.h>
 #include <maya/MArgList.h>
 #include <maya/MGlobal.h>
 #include <maya/MIntArray.h>
@@ -16,6 +17,14 @@ UvChecker::UvChecker()
 
 UvChecker::~UvChecker()
 {
+}
+
+MSyntax UvChecker::newSyntax()
+{
+    MSyntax syntax;
+    syntax.addFlag("-v", "-verbose", MSyntax::kBoolean);
+    syntax.addFlag("-c", "-check", MSyntax::kUnsigned);
+    return syntax;
 }
 
 MStatus UvChecker::findOverlaps()
@@ -77,7 +86,7 @@ MStatus UvChecker::findOverlaps()
     }
     MPxCommand::setResult(resultArray);
 
-    return status;
+    return MS::kSuccess;
 }
 
 MStatus UvChecker::doIt(const MArgList& args)
@@ -96,6 +105,18 @@ MStatus UvChecker::doIt(const MArgList& args)
     }
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
+    MArgDatabase argData(syntax(), args);
+
+    if (argData.isFlagSet("-verbose"))
+        argData.getFlagArgument("-verbose", 0, verbose);
+    else
+        verbose = false;
+
+    if (argData.isFlagSet("-check"))
+        argData.getFlagArgument("-check", 0, checkNumber);
+    else
+        checkNumber = 99;
+
     MSelectionList sel;
     sel.add(argument);
     sel.getDagPath(0, mDagPath);
@@ -106,7 +127,20 @@ MStatus UvChecker::doIt(const MArgList& args)
 MStatus UvChecker::redoIt()
 {
     MStatus status;
-    findOverlaps();
+
+    switch (checkNumber) {
+    case UvChecker::OVERLAPS:
+        status = findOverlaps();
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        break;
+    case UvChecker::UDIM:
+        MGlobal::displayInfo("Not implemented yet");
+        break;
+    default:
+        MGlobal::displayError("Invalid check number");
+        break;
+    }
+
     return MS::kSuccess;
 }
 
