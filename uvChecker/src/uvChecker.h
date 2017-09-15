@@ -4,6 +4,7 @@
 #include <maya/MDagPath.h>
 #include <maya/MPxCommand.h>
 #include <maya/MSyntax.h>
+#include <maya/MString.h>
 
 class UvChecker : public MPxCommand {
 public:
@@ -17,6 +18,7 @@ public:
     static MSyntax newSyntax();
 
     MStatus findOverlaps();
+    MStatus findUdimIntersections();
 
     enum Check {
         OVERLAPS,
