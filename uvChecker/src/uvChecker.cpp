@@ -55,6 +55,11 @@ MStatus UvChecker::doIt(const MArgList& args)
 
     sel.getDagPath(0, mDagPath);
 
+    if (verbose == true) {
+        MString objectPath = "Selected mesh : " + mDagPath.fullPathName();
+        MGlobal::displayInfo(objectPath);
+    }
+
     status = mDagPath.extendToShape();
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
@@ -72,17 +77,22 @@ MStatus UvChecker::redoIt()
 
     switch (checkNumber) {
     case UvChecker::OVERLAPS:
+        if (verbose == true) {
+            MGlobal::displayInfo("Checking overlaps");
+        }
         status = findOverlaps();
-        MGlobal::displayInfo("Checking overlaps");
         CHECK_MSTATUS_AND_RETURN_IT(status);
         break;
     case UvChecker::UDIM:
+        if (verbose == true) {
+            MGlobal::displayInfo("Checking UDIM borders");
+        }
         status = findUdimIntersections();
-        MGlobal::displayInfo("Checking udim borders");
         CHECK_MSTATUS_AND_RETURN_IT(status);
         break;
     default:
         MGlobal::displayError("Invalid check number");
+        return MS::kFailure;
         break;
     }
 
