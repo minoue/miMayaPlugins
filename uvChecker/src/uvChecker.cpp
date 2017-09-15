@@ -39,7 +39,7 @@ MStatus UvChecker::doIt(const MArgList& args)
 
     status = argData.getCommandArgument(0, sel);
     if (status != MS::kSuccess) {
-        MGlobal::displayError("You have provide an object path");
+        MGlobal::displayError("You have to provide an object path");
         return MStatus::kFailure;
     }
 
