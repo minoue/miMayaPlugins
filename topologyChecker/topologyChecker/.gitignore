@@ -1,8 +1,0 @@
-*.un~
-*.txt
-*.cmake
-.DS_Store
-tags
-modules/
-build/
-!CMakeLists.txt
