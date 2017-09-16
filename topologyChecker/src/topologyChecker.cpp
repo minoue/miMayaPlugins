@@ -134,7 +134,6 @@ MSyntax TopologyChecker::newSyntax()
 {
     MSyntax syntax;
     syntax.addFlag("-c", "-check", MSyntax::kUnsigned);
-    syntax.addFlag("-a", "-uvAreaMax", MSyntax::kDouble);
     syntax.addFlag("-fa", "-faceAreaMax", MSyntax::kDouble);
     return syntax;
 }
@@ -162,11 +161,6 @@ MStatus TopologyChecker::doIt(const MArgList& args)
         argData.getFlagArgument("-check", 0, checkNumber);
     else
         checkNumber = 99;
-
-    if (argData.isFlagSet("-uvAreaMax"))
-        argData.getFlagArgument("-uvAreaMax", 0, uvAreaMax);
-    else
-        uvAreaMax = 0.00001;
 
     if (argData.isFlagSet("-faceAreaMax"))
         argData.getFlagArgument("-faceAreaMax", 0, faceAreaMax);

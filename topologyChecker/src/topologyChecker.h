@@ -43,7 +43,6 @@ public:
 
 private:
     MDagPath mDagPath;
-    double uvAreaMax;
     double faceAreaMax;
 };
 
