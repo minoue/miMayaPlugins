@@ -28,10 +28,6 @@ public:
     MStatus findBiValentFaces(MItMeshVertex& mItVert, MIntArray& indexArray);
     MStatus findZeroAreaFaces(MItMeshPolygon& mItPoly, MIntArray& indexArray,
         double& faceAreaMax);
-    MStatus findZeroAreaUV(MItMeshPolygon& mItPoly, MIntArray& indexArray,
-        double& uvAreaMax);
-    MStatus findUdimIntersections(const MDagPath& dagPath, MIntArray& indexArray);
-    MStatus findUvOverlaps(const MDagPath& dagPath, MIntArray& indexArray);
     MStringArray setResultString(MIntArray& indexArray,
         std::string componentType);
 
@@ -42,9 +38,6 @@ public:
         LAMINA_FACES,
         BI_VALENT_FACES,
         ZERO_AREA_FACES,
-        ZERO_AREA_UV,
-        UDIM,
-        UV_OVERLAP,
         TEST
     };
 

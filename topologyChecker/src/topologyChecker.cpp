@@ -106,113 +106,6 @@ MStatus TopologyChecker::findZeroAreaFaces(MItMeshPolygon& mItPoly, MIntArray& i
     return status;
 }
 
-MStatus TopologyChecker::findZeroAreaUV(MItMeshPolygon& mItPoly,
-    MIntArray& indexArray,
-    double& uvAreaMax)
-{
-    MStatus status;
-    double area;
-    for (; !mItPoly.isDone(); mItPoly.next()) {
-        mItPoly.getUVArea(area);
-        if (area < uvAreaMax) {
-            indexArray.append(mItPoly.index());
-        }
-    }
-    return status;
-}
-
-MStatus TopologyChecker::findUdimIntersections(const MDagPath& dagPath,
-    MIntArray& indexArray)
-{
-    MStatus status;
-
-    MFnMesh fnMesh(dagPath);
-
-    std::set<int> indexSet;
-
-    // clock_t clock_start = clock();
-    for (MItMeshPolygon mItPoly(dagPath); !mItPoly.isDone(); mItPoly.next()) {
-
-        int vCount = mItPoly.polygonVertexCount();
-        int currentIndex;
-        int nextIndex;
-        float u1, v1, u2, v2;
-
-        for (int i = 0; i < vCount; i++) {
-            mItPoly.getUVIndex(i, currentIndex);
-
-            if (i == vCount - 1) {
-                mItPoly.getUVIndex(0, nextIndex);
-            } else {
-                mItPoly.getUVIndex(i + 1, nextIndex);
-            }
-
-            fnMesh.getUV(currentIndex, u1, v1);
-            fnMesh.getUV(nextIndex, u2, v2);
-
-            if (floor(u1) == floor(u2) && floor(v1) == floor(v2)) {
-            } else {
-                indexSet.insert(currentIndex);
-                indexSet.insert(nextIndex);
-            }
-        }
-    }
-
-    // double time;
-    // time = 1000.0*static_cast<double>(clock()- clock_start) / CLOCKS_PER_SEC;
-    // MString timeStr;
-    // timeStr.set(time);
-    // MGlobal::displayInfo(timeStr);
-
-    std::set<int>::iterator indexSetIter;
-    for (indexSetIter = indexSet.begin(); indexSetIter != indexSet.end(); ++indexSetIter) {
-        indexArray.append(*indexSetIter);
-    }
-
-    return MS::kSuccess;
-}
-
-MStatus TopologyChecker::findUvOverlaps(const MDagPath& dagPath, MIntArray& indexArray)
-{
-    MStatus status;
-
-    MFnMesh fnMesh(dagPath);
-
-    std::set<UVEdge> edgeSet;
-
-    for (MItMeshPolygon mItPoly(dagPath); !mItPoly.isDone(); mItPoly.next()) {
-
-        int vCount = mItPoly.polygonVertexCount();
-        int currentIndex;
-        int nextIndex;
-        float u1, v1, u2, v2;
-
-        for (int i = 0; i < vCount; i++) {
-            mItPoly.getUVIndex(i, currentIndex);
-
-            if (i == vCount - 1) {
-                mItPoly.getUVIndex(0, nextIndex);
-            } else {
-                mItPoly.getUVIndex(i + 1, nextIndex);
-            }
-
-            fnMesh.getUV(currentIndex, u1, v1);
-            fnMesh.getUV(nextIndex, u2, v2);
-
-            UVPoint uvp1(u1, v1, currentIndex);
-            UVPoint uvp2(u2, v2, nextIndex);
-            UVEdge edge(uvp1, uvp2);
-            edgeSet.insert(edge);
-        }
-    }
-
-    std::set<UVEdge>::iterator edgeSetIter;
-    for (edgeSetIter = edgeSet.begin(); edgeSetIter != edgeSet.end(); ++edgeSetIter) {
-    }
-
-    return MS::kSuccess;
-}
-
 MStringArray TopologyChecker::setResultString(MIntArray& indexArray, std::string componentType)
 {
     MString fullpath = mDagPath.fullPathName();
@@ -322,25 +215,11 @@ MStatus TopologyChecker::doIt(const MArgList& args)
         CHECK_MSTATUS_AND_RETURN_IT(status);
         resultArray = setResultString(indexArray, "face");
         break;
-    case TopologyChecker::ZERO_AREA_UV:
-        status = findZeroAreaUV(mItPoly, indexArray, uvAreaMax);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-        resultArray = setResultString(indexArray, "face");
-        break;
-    case TopologyChecker::UDIM:
-        status = findUdimIntersections(mDagPath, indexArray);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-        resultArray = setResultString(indexArray, "uv");
-        break;
-    case TopologyChecker::UV_OVERLAP:
-        status = findUvOverlaps(mDagPath, indexArray);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-        resultArray = setResultString(indexArray, "uv");
-        break;
     case TopologyChecker::TEST:
         break;
     default:
         MGlobal::displayError("Invalid check number");
+        return MS::kFailure;
         break;
     }
 
