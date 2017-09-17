@@ -27,10 +27,10 @@ TopologyChecker::~TopologyChecker()
 {
 }
 
-MStatus TopologyChecker::findTriangles(MItMeshPolygon& mItPoly, MIntArray& indexArray)
+MStatus TopologyChecker::findTriangles(MIntArray& indexArray)
 {
     MStatus status;
-    for (; !mItPoly.isDone(); mItPoly.next()) {
+    for (MItMeshPolygon mItPoly(mDagPath); !mItPoly.isDone(); mItPoly.next()) {
         if (mItPoly.polygonVertexCount() == 3) {
             indexArray.append(mItPoly.index());
         }
@@ -38,10 +38,10 @@ MStatus TopologyChecker::findTriangles(MItMeshPolygon& mItPoly, MIntArray& index
     return status;
 }
 
-MStatus TopologyChecker::findNgons(MItMeshPolygon& mItPoly, MIntArray& indexArray)
+MStatus TopologyChecker::findNgons(MIntArray& indexArray)
 {
     MStatus status;
-    for (; !mItPoly.isDone(); mItPoly.next()) {
+    for (MItMeshPolygon mItPoly(mDagPath); !mItPoly.isDone(); mItPoly.next()) {
         if (mItPoly.polygonVertexCount() >= 5) {
             indexArray.append(mItPoly.index());
         }
@@ -49,11 +49,11 @@ MStatus TopologyChecker::findNgons(MItMeshPolygon& mItPoly, MIntArray& indexArra
     return status;
 }
 
-MStatus TopologyChecker::findNonManifoldEdges(MItMeshEdge& mItEdge, MIntArray& indexArray)
+MStatus TopologyChecker::findNonManifoldEdges(MIntArray& indexArray)
 {
     MStatus status;
     int faceCount;
-    for (; !mItEdge.isDone(); mItEdge.next()) {
+    for (MItMeshEdge mItEdge(mDagPath); !mItEdge.isDone(); mItEdge.next()) {
         status = mItEdge.numConnectedFaces(faceCount);
         CHECK_MSTATUS_AND_RETURN_IT(status);
 
@@ -65,10 +65,10 @@ MStatus TopologyChecker::findNonManifoldEdges(MItMeshEdge& mItEdge, MIntArray& i
     return status;
 }
 
-MStatus TopologyChecker::findLaminaFaces(MItMeshPolygon& mItPoly, MIntArray& indexArray)
+MStatus TopologyChecker::findLaminaFaces(MIntArray& indexArray)
 {
     MStatus status;
-    for (; !mItPoly.isDone(); mItPoly.next()) {
+    for (MItMeshPolygon mItPoly(mDagPath); !mItPoly.isDone(); mItPoly.next()) {
         if (mItPoly.isLamina() == true) {
             indexArray.append(mItPoly.index());
         }
@@ -76,12 +76,12 @@ MStatus TopologyChecker::findLaminaFaces(MItMeshPolygon& mItPoly, MIntArray& ind
     return status;
 }
 
-MStatus TopologyChecker::findBiValentFaces(MItMeshVertex& mItVert, MIntArray& indexArray)
+MStatus TopologyChecker::findBiValentFaces(MIntArray& indexArray)
 {
     MStatus status;
     MIntArray connectedFaces;
     MIntArray connectedEdges;
-    for (; !mItVert.isDone(); mItVert.next()) {
+    for (MItMeshVertex mItVert(mDagPath); !mItVert.isDone(); mItVert.next()) {
         mItVert.getConnectedFaces(connectedFaces);
         mItVert.getConnectedEdges(connectedEdges);
         int numFaces = connectedFaces.length();
@@ -93,11 +93,11 @@ MStatus TopologyChecker::findBiValentFaces(MItMeshVertex& mItVert, MIntArray& in
     return status;
 }
 
-MStatus TopologyChecker::findZeroAreaFaces(MItMeshPolygon& mItPoly, MIntArray& indexArray, double& faceAreaMax)
+MStatus TopologyChecker::findZeroAreaFaces(MIntArray& indexArray, double& faceAreaMax)
 {
     MStatus status;
     double area;
-    for (; !mItPoly.isDone(); mItPoly.next()) {
+    for (MItMeshPolygon mItPoly(mDagPath); !mItPoly.isDone(); mItPoly.next()) {
         mItPoly.getArea(area);
         if (area < faceAreaMax) {
             indexArray.append(mItPoly.index());
@@ -174,38 +174,34 @@ MStatus TopologyChecker::doIt(const MArgList& args)
     MStringArray resultArray;
     MIntArray indexArray;
 
-    MItMeshPolygon mItPoly(mDagPath);
-    MItMeshEdge mItEdge(mDagPath);
-    MItMeshVertex mItVert(mDagPath);
-
     switch (checkNumber) {
     case TopologyChecker::TRIANGLES:
-        status = findTriangles(mItPoly, indexArray);
+        status = findTriangles(indexArray);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         resultArray = setResultString(indexArray, "face");
         break;
     case TopologyChecker::NGONS:
-        status = findNgons(mItPoly, indexArray);
+        status = findNgons(indexArray);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         resultArray = setResultString(indexArray, "face");
         break;
     case TopologyChecker::NON_MANIFOLD_EDGES:
-        status = findNonManifoldEdges(mItEdge, indexArray);
+        status = findNonManifoldEdges(indexArray);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         resultArray = setResultString(indexArray, "edge");
         break;
     case TopologyChecker::LAMINA_FACES:
-        status = findLaminaFaces(mItPoly, indexArray);
+        status = findLaminaFaces(indexArray);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         resultArray = setResultString(indexArray, "face");
         break;
     case TopologyChecker::BI_VALENT_FACES:
-        status = findBiValentFaces(mItVert, indexArray);
+        status = findBiValentFaces(indexArray);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         resultArray = setResultString(indexArray, "vertex");
         break;
     case TopologyChecker::ZERO_AREA_FACES:
-        status = findZeroAreaFaces(mItPoly, indexArray, faceAreaMax);
+        status = findZeroAreaFaces(indexArray, faceAreaMax);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         resultArray = setResultString(indexArray, "face");
         break;

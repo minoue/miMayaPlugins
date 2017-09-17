@@ -21,12 +21,12 @@ public:
     static MSyntax newSyntax();
 
     // check functions
-    MStatus findTriangles(MItMeshPolygon& mItPoly, MIntArray& indexArray);
-    MStatus findNgons(MItMeshPolygon& mItPoly, MIntArray& indexArray);
-    MStatus findNonManifoldEdges(MItMeshEdge& mItEdge, MIntArray& indexArray);
-    MStatus findLaminaFaces(MItMeshPolygon& mItPoly, MIntArray& indexArray);
-    MStatus findBiValentFaces(MItMeshVertex& mItVert, MIntArray& indexArray);
-    MStatus findZeroAreaFaces(MItMeshPolygon& mItPoly, MIntArray& indexArray,
+    MStatus findTriangles(MIntArray& indexArray);
+    MStatus findNgons(MIntArray& indexArray);
+    MStatus findNonManifoldEdges(MIntArray& indexArray);
+    MStatus findLaminaFaces(MIntArray& indexArray);
+    MStatus findBiValentFaces(MIntArray& indexArray);
+    MStatus findZeroAreaFaces(MIntArray& indexArray,
         double& faceAreaMax);
     MStringArray setResultString(MIntArray& indexArray,
         std::string componentType);
