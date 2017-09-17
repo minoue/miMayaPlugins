@@ -90,6 +90,13 @@ MStatus UvChecker::redoIt()
         status = findUdimIntersections();
         CHECK_MSTATUS_AND_RETURN_IT(status);
         break;
+    case UvChecker::HAS_UVS:
+        if (verbose == true) {
+            MGlobal::displayInfo("Checking Non UVed faces");
+        }
+        status = findNoUvFaces();
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        break;
     default:
         MGlobal::displayError("Invalid check number");
         return MS::kFailure;
@@ -227,5 +234,23 @@ MStatus UvChecker::findUdimIntersections()
     }
     MPxCommand::setResult(resultArray);
 
+    return MS::kSuccess;
+}
+
+MStatus UvChecker::findNoUvFaces()
+{
+    MStringArray resultArray;
+
+    bool hasUVs;
+    for (MItMeshPolygon itPoly(mDagPath); !itPoly.isDone(); itPoly.next()) {
+        hasUVs = itPoly.hasUVs();
+        if (hasUVs == false) {
+            MString index;
+            index.set(itPoly.index());
+            MString s = mDagPath.fullPathName() + ".f[" + index + "]";
+            resultArray.append(s);
+        }
+    }
+    MPxCommand::setResult(resultArray);
     return MS::kSuccess;
 }
