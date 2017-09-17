@@ -19,10 +19,12 @@ public:
 
     MStatus findOverlaps();
     MStatus findUdimIntersections();
+    MStatus findNoUvFaces();
 
     enum Check {
         OVERLAPS,
-        UDIM
+        UDIM,
+        HAS_UVS
     };
 
 private:
