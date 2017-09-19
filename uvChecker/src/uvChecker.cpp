@@ -1,6 +1,7 @@
 #include "uvChecker.h"
 #include "uvPoint.h"
 #include <map>
+#include <math.h>
 #include <maya/MArgDatabase.h>
 #include <maya/MArgList.h>
 #include <maya/MFnMesh.h>
@@ -195,26 +196,26 @@ MStatus UvChecker::findUdimIntersections()
     for (MItMeshPolygon mItPoly(mDagPath); !mItPoly.isDone(); mItPoly.next()) {
 
         int vCount = mItPoly.polygonVertexCount();
-        int currentIndex;
-        int nextIndex;
+        int currentUVindex;
+        int nextUVindex;
         float u1, v1, u2, v2;
 
         for (int i = 0; i < vCount; i++) {
-            mItPoly.getUVIndex(i, currentIndex);
+            mItPoly.getUVIndex(i, currentUVindex);
 
             if (i == vCount - 1) {
-                mItPoly.getUVIndex(0, nextIndex);
+                mItPoly.getUVIndex(0, nextUVindex);
             } else {
-                mItPoly.getUVIndex(i + 1, nextIndex);
+                mItPoly.getUVIndex(i + 1, nextUVindex);
             }
 
-            fnMesh.getUV(currentIndex, u1, v1);
-            fnMesh.getUV(nextIndex, u2, v2);
+            fnMesh.getUV(currentUVindex, u1, v1);
+            fnMesh.getUV(nextUVindex, u2, v2);
 
             if (floor(u1) == floor(u2) && floor(v1) == floor(v2)) {
             } else {
-                indexSet.insert(currentIndex);
-                indexSet.insert(nextIndex);
+                indexSet.insert(currentUVindex);
+                indexSet.insert(nextUVindex);
             }
         }
     }
@@ -223,13 +224,13 @@ MStatus UvChecker::findUdimIntersections()
     for (indexSetIter = indexSet.begin(); indexSetIter != indexSet.end(); ++indexSetIter) {
         indexArray.append(*indexSetIter);
     }
-
+    
     unsigned int arrayLength = indexArray.length();
     MStringArray resultArray;
     for (unsigned int i = 0; i < arrayLength; i++) {
         MString index;
         index.set(indexArray[i]);
-        MString s = mDagPath.fullPathName() + ".f[" + index + "]";
+        MString s = mDagPath.fullPathName() + ".map[" + index + "]";
         resultArray.append(s);
     }
     MPxCommand::setResult(resultArray);
