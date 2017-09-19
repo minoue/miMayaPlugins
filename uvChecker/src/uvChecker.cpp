@@ -27,6 +27,7 @@ MSyntax UvChecker::newSyntax()
     syntax.addArg(MSyntax::kString);
     syntax.addFlag("-v", "-verbose", MSyntax::kBoolean);
     syntax.addFlag("-c", "-check", MSyntax::kUnsigned);
+    syntax.addFlag("-uva", "-uvArea", MSyntax::kDouble);
     return syntax;
 }
 
@@ -53,6 +54,11 @@ MStatus UvChecker::doIt(const MArgList& args)
         argData.getFlagArgument("-check", 0, checkNumber);
     else
         checkNumber = 99;
+
+    if (argData.isFlagSet("-uvArea"))
+        argData.getFlagArgument("-uvArea", 0, minUVArea);
+    else
+        minUVArea = 0.000001;
 
     sel.getDagPath(0, mDagPath);
 
@@ -96,6 +102,13 @@ MStatus UvChecker::redoIt()
             MGlobal::displayInfo("Checking Non UVed faces");
         }
         status = findNoUvFaces();
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        break;
+    case UvChecker::ZERO_AREA:
+        if (verbose == true) {
+            MGlobal::displayInfo("Checking Zero UV faces");
+        }
+        status = findZeroUvFaces();
         CHECK_MSTATUS_AND_RETURN_IT(status);
         break;
     default:
@@ -250,6 +263,35 @@ MStatus UvChecker::findNoUvFaces()
             index.set(itPoly.index());
             MString s = mDagPath.fullPathName() + ".f[" + index + "]";
             resultArray.append(s);
+        }
+    }
+    MPxCommand::setResult(resultArray);
+    return MS::kSuccess;
+}
+
+MStatus UvChecker::findZeroUvFaces()
+{
+    MStringArray resultArray;
+    double area;
+    bool hasUVs;
+    MString index;
+
+    MString temp;
+    temp.set(minUVArea);
+    MGlobal::displayInfo(temp);
+
+    for (MItMeshPolygon itPoly(mDagPath); !itPoly.isDone(); itPoly.next()) {
+        hasUVs = itPoly.hasUVs();
+        if (hasUVs == false) {
+        } else {
+            itPoly.getUVArea(area);
+            temp.set(area);
+            // MGlobal::displayInfo(temp);
+            if (area < minUVArea) {
+                index.set(itPoly.index());
+                MString s = mDagPath.fullPathName() + ".f[" + index + "]";
+                resultArray.append(s);
+            }
         }
     }
     MPxCommand::setResult(resultArray);

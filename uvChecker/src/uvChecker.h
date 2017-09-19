@@ -20,16 +20,19 @@ public:
     MStatus findOverlaps();
     MStatus findUdimIntersections();
     MStatus findNoUvFaces();
+    MStatus findZeroUvFaces();
 
     enum Check {
         OVERLAPS,
         UDIM,
-        HAS_UVS
+        HAS_UVS,
+        ZERO_AREA
     };
 
 private:
     MDagPath mDagPath;
     bool verbose;
+    double minUVArea;
     unsigned int checkNumber;
 };
 
