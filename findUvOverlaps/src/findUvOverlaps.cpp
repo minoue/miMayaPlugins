@@ -98,7 +98,6 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
     fnMesh.getTriangles(triCountEachFaces, triangleVertices);
 
     int numBorderPoints = shellA.borderUvPoints.size();
-    std::cout << numBorderPoints << std::endl;
 
     float u;
     float v;
@@ -106,15 +105,10 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
     for (int s = 0; s < numBorderPoints; s++) {
         fnMesh.getUV(shellA.borderUvPoints[s], u, v);
 
-        UVPoint& targetPoint = shellA.uvPoints[s];
-        targetPoint.u = u;
-        targetPoint.v = v;
-
-        // If a point is not part of the bounding of another shell, there is no need to test
-        if (targetPoint.u < shellB.uMin || targetPoint.u > shellB.uMax) {
+        if (u < shellB.uMin || u > shellB.uMax) {
             continue;
         }
-        if (targetPoint.v < shellB.vMin || targetPoint.v > shellB.vMax) {
+        if (v < shellB.vMin || v > shellB.vMax) {
             continue;
         }
 
@@ -140,19 +134,18 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
                 fnMesh.getPolygonUV(polygonFaceId, localVtxIdMap[triVertsList[0]], Au, Av);
                 fnMesh.getPolygonUV(polygonFaceId, localVtxIdMap[triVertsList[1]], Bu, Bv);
                 fnMesh.getPolygonUV(polygonFaceId, localVtxIdMap[triVertsList[2]], Cu, Cv);
-
-                float area1 = ((targetPoint.u * (Bv - Cv)) + (Bu * (Cv - targetPoint.v)) + (Cu * (targetPoint.v - Bv))) / 2.0;
-                float area2 = ((Au * (targetPoint.v - Cv)) + (targetPoint.u * (Cv - Av)) + (Cu * (Av - targetPoint.v))) / 2.0;
-                float area3 = ((Au * (Bv - targetPoint.v)) + (Bu * (targetPoint.v - Av)) + (targetPoint.u * (Av - Bv))) / 2.0;
-
+                float area1 = ((u * (Bv - Cv)) + (Bu * (Cv - v)) + (Cu * (v - Bv))) / 2.0;
+                float area2 = ((Au * (v - Cv)) + (u * (Cv - Av)) + (Cu * (Av - v))) / 2.0;
+                float area3 = ((Au * (Bv - v)) + (Bu * (v - Av)) + (u * (Av - Bv))) / 2.0;
                 if (area1 >= 0 && area2 >= 0 && area3 >= 0) {
                     shellIntersectionsResult.append(polygonFaceId);
-                    break;
+                    goto NEXT_UV;
                 }
             }
         }
+        NEXT_UV:
+        ;
     }
-
     return MS::kSuccess;
 }
 
