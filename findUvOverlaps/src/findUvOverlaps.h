@@ -50,6 +50,7 @@ public:
     MStatus findShellIntersections(UVShell& shellA, UVShell& shellB);
     static void createThreadData(void* data, MThreadRootTask* root);
     static MThreadRetVal findInnerIntersectionsMT(void* data);
+    float getTriangleArea(float& Ax, float& Ay, float& Bx, float& By, float& Cx, float& Cy);
 
 private:
     static MDagPath mDagPath;

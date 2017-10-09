@@ -8,6 +8,8 @@
 #include <maya/MSelectionList.h>
 #include <maya/MStringArray.h>
 #include <maya/MTimer.h>
+#include <maya/MVector.h>
+#include <maya/MPoint.h>
 
 #include <algorithm>
 #include <iostream>
@@ -51,7 +53,7 @@ MSyntax FindUvOverlaps::newSyntax()
     return syntax;
 }
 
-void combination(int N, std::vector<std::vector<int>>& vec)
+void combination(int N, std::vector<std::vector<int> >& vec)
 {
     std::string bitmask(2, 1); // K leading 1's
     bitmask.resize(N, 0); // N-K trailing 0's
@@ -66,6 +68,11 @@ void combination(int N, std::vector<std::vector<int>>& vec)
         }
         vec.push_back(sb);
     } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+}
+
+float FindUvOverlaps::getTriangleArea(float& Ax, float& Ay, float& Bx, float& By, float& Cx, float& Cy) {
+    float area = ((Ax * (By - Cy)) + (Bx * (Cy - Ay)) + (Cx * (Ay - By))) / 2.0;
+    return area;
 }
 
 bool FindUvOverlaps::checkShellIntersection(UVShell& s1, UVShell& s2)
@@ -101,6 +108,15 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
 
     float u;
     float v;
+    float u2 = u+10.0;
+
+    float u_current;
+    float v_current;
+    float u_next;
+    float v_next;
+
+    float area1;
+    float area2;
 
     for (int s = 0; s < numBorderPoints; s++) {
         fnMesh.getUV(shellA.borderUvPoints[s], u, v);
@@ -117,30 +133,39 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
 
         for (polygonIter = shellB.polygonIDs.begin(); polygonIter != shellB.polygonIDs.end(); ++polygonIter) {
             polygonFaceId = *polygonIter;
+            int polygonVertexCount = fnMesh.polygonVertexCount(polygonFaceId);
+            int lastIndex = polygonVertexCount - 1;
 
-            // Build map for local vtx id and global vtx IDs
-            MIntArray polygonVertices;
-            localVtxIdMap.clear();
-            fnMesh.getPolygonVertices(polygonFaceId, polygonVertices);
-            for (int p = 0; p < polygonVertices.length(); p++) {
-                localVtxIdMap[polygonVertices[p]] = p;
-            }
+            int test = 0;
+            for (int currentIndex=0; currentIndex<polygonVertexCount; currentIndex++) {
+                bool toggleA = true;
+                bool toggleB = true;
 
-            int numTriangleOnFace = triCountEachFaces[polygonFaceId];
-            int triVertsList[3];
-            for (int t = 0; t < numTriangleOnFace; t++) {
-                fnMesh.getPolygonTriangleVertices(polygonFaceId, t, triVertsList);
-                float Au, Av, Bu, Bv, Cu, Cv;
-                fnMesh.getPolygonUV(polygonFaceId, localVtxIdMap[triVertsList[0]], Au, Av);
-                fnMesh.getPolygonUV(polygonFaceId, localVtxIdMap[triVertsList[1]], Bu, Bv);
-                fnMesh.getPolygonUV(polygonFaceId, localVtxIdMap[triVertsList[2]], Cu, Cv);
-                float area1 = ((u * (Bv - Cv)) + (Bu * (Cv - v)) + (Cu * (v - Bv))) / 2.0;
-                float area2 = ((Au * (v - Cv)) + (u * (Cv - Av)) + (Cu * (Av - v))) / 2.0;
-                float area3 = ((Au * (Bv - v)) + (Bu * (v - Av)) + (u * (Av - Bv))) / 2.0;
-                if (area1 >= 0 && area2 >= 0 && area3 >= 0) {
-                    shellIntersectionsResult.append(polygonFaceId);
-                    goto NEXT_UV;
+                if (currentIndex == lastIndex) {
+                    fnMesh.getPolygonUV(polygonFaceId, currentIndex, u_current, v_current);
+                    fnMesh.getPolygonUV(polygonFaceId, 0, u_next, v_next);
                 }
+                else {
+                    fnMesh.getPolygonUV(polygonFaceId, currentIndex, u_current, v_current);
+                    fnMesh.getPolygonUV(polygonFaceId, currentIndex+1, u_next, v_next);
+                }
+                area1 = getTriangleArea(u, v, u_current, v_current, u2, v);
+                area2 = getTriangleArea(u, v, u_next, v_next, u2, v);
+                if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
+                    toggleA = false;
+                }
+                area1 = getTriangleArea(u_current, v_current, u, v, u_next, v_next);
+                area2 = getTriangleArea(u_current, v_current, u2, v, u_next, v_next);
+                if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
+                    toggleB = false;
+                }
+                if (toggleA == true && toggleB == true) {
+                    test++;
+                }
+            }
+            if ((test % 2) != 0) {
+                shellIntersectionsResult.append(polygonFaceId);
+                goto NEXT_UV;
             }
         }
         NEXT_UV:
@@ -388,7 +413,7 @@ MStatus FindUvOverlaps::redoIt()
         }
 
         // comments here
-        std::vector<std::vector<int>> shellCombVec;
+        std::vector<std::vector<int> > shellCombVec;
         combination(numUVshells, shellCombVec);
 
         for (int i = 0; i < shellCombVec.size(); i++) {
@@ -401,6 +426,7 @@ MStatus FindUvOverlaps::redoIt()
 
             if (isIntersected == true) {
                 findShellIntersections(shellA, shellB);
+                findShellIntersections(shellB, shellA);
             } else {
             }
         }
