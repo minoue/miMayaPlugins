@@ -128,7 +128,7 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
             continue;
         }
 
-        std::set<int>::iterator polygonIter;
+        std::unordered_set<int>::iterator polygonIter;
         int polygonFaceId;
 
         for (polygonIter = shellB.polygonIDs.begin(); polygonIter != shellB.polygonIDs.end(); ++polygonIter) {
@@ -370,7 +370,6 @@ MStatus FindUvOverlaps::redoIt()
             itVerts.getUVIndices(uvIndexArray);
             if (numUniUv == 1) {
                 // If current vertex has only 1 UV point, its UV is inside of a UV shell
-
                 int thisIndex = uvIndexArray[0];
                 int shellNumber = uvShellIds[thisIndex];
                 itVerts.getConnectedFaces(connectedFacesArray);

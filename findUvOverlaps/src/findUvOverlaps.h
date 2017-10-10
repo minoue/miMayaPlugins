@@ -8,7 +8,7 @@
 #include <maya/MString.h>
 #include <maya/MSyntax.h>
 #include <maya/MThreadPool.h>
-#include <set>
+#include <unordered_set>
 #include <vector>
 
 typedef struct _uvPointData {
@@ -22,7 +22,7 @@ typedef struct _uvShellDataTag {
     std::vector<UVPoint> uvPoints;
     std::vector<float> uVector;
     std::vector<float> vVector;
-    std::set<int> polygonIDs;
+    std::unordered_set<int> polygonIDs;
     std::vector<int> borderUvPoints;
     int shellIndex;
     float uMax;
