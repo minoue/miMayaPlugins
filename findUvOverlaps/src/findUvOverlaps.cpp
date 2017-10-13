@@ -7,6 +7,7 @@
 #include <maya/MPointArray.h>
 #include <maya/MSelectionList.h>
 #include <maya/MStringArray.h>
+#include <maya/MFloatArray.h>
 #include <maya/MTimer.h>
 #include <maya/MVector.h>
 #include <maya/MPoint.h>
@@ -14,6 +15,7 @@
 #include <algorithm>
 #include <iostream>
 #include <map>
+#include <unordered_map>
 #include <string>
 
 #define NUM_TASKS 16
@@ -97,12 +99,12 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
 {
     MStatus status;
 
-    std::map<int, int> localVtxIdMap;
+    // std::map<int, int> localVtxIdMap;
     int numUVsInShellA = shellA.uvPoints.size();
 
-    MIntArray triCountEachFaces;
-    MIntArray triangleVertices;
-    fnMesh.getTriangles(triCountEachFaces, triangleVertices);
+    // MIntArray triCountEachFaces;
+    // MIntArray triangleVertices;
+    // fnMesh.getTriangles(triCountEachFaces, triangleVertices);
 
     int numBorderPoints = shellA.borderUvPoints.size();
 
@@ -117,6 +119,27 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
 
     float area1;
     float area2;
+
+    MFloatArray uArray;
+    MFloatArray vArray;
+    MIntArray uvCounts;
+    MIntArray uvIds;
+
+    fnMesh.getUVs(uArray, vArray);
+    fnMesh.getAssignedUVs(uvCounts, uvIds);
+
+    std::unordered_map<int, std::vector<int> > uvMap;
+
+    int counter = 0;
+    for (int i=0; i<uvCounts.length(); i++) {
+        int count = uvCounts[i];
+        std::vector<int> uvs;
+        for (int c=0; c<count; c++) {
+            uvs.push_back(uvIds[counter]);
+            counter++;
+        }
+        uvMap[i] = uvs;
+    }
 
     for (int s = 0; s < numBorderPoints; s++) {
         fnMesh.getUV(shellA.borderUvPoints[s], u, v);
@@ -133,21 +156,35 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
 
         for (polygonIter = shellB.polygonIDs.begin(); polygonIter != shellB.polygonIDs.end(); ++polygonIter) {
             polygonFaceId = *polygonIter;
-            int polygonVertexCount = fnMesh.polygonVertexCount(polygonFaceId);
+            std::vector<int>& uvIdVector = uvMap[polygonFaceId];
+            int polygonVertexCount = uvIdVector.size();
+            // int polygonVertexCount = fnMesh.polygonVertexCount(polygonFaceId);
             int lastIndex = polygonVertexCount - 1;
 
-            int test = 0;
+
+            int numIntersections = 0;
             for (int currentIndex=0; currentIndex<polygonVertexCount; currentIndex++) {
                 bool toggleA = true;
                 bool toggleB = true;
-
                 if (currentIndex == lastIndex) {
-                    fnMesh.getPolygonUV(polygonFaceId, currentIndex, u_current, v_current);
-                    fnMesh.getPolygonUV(polygonFaceId, 0, u_next, v_next);
+                    int& currentID = uvIdVector[currentIndex];
+                    int& nextID = uvIdVector[0];
+                    u_current = uArray[currentID];
+                    v_current = vArray[currentID];
+                    u_next = uArray[nextID];
+                    v_next = vArray[nextID];
+                    // fnMesh.getPolygonUV(polygonFaceId, currentIndex, u_current, v_current);
+                    // fnMesh.getPolygonUV(polygonFaceId, 0, u_next, v_next);
                 }
                 else {
-                    fnMesh.getPolygonUV(polygonFaceId, currentIndex, u_current, v_current);
-                    fnMesh.getPolygonUV(polygonFaceId, currentIndex+1, u_next, v_next);
+                    int& currentID = uvIdVector[currentIndex];
+                    int& nextID = uvIdVector[currentIndex+1];
+                    u_current = uArray[currentID];
+                    v_current = vArray[currentID];
+                    u_next = uArray[nextID];
+                    v_next = vArray[nextID];
+                    // fnMesh.getPolygonUV(polygonFaceId, currentIndex, u_current, v_current);
+                    // fnMesh.getPolygonUV(polygonFaceId, currentIndex+1, u_next, v_next);
                 }
                 area1 = getTriangleArea(u, v, u_current, v_current, u2, v);
                 area2 = getTriangleArea(u, v, u_next, v_next, u2, v);
@@ -160,10 +197,10 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
                     toggleB = false;
                 }
                 if (toggleA == true && toggleB == true) {
-                    test++;
+                    numIntersections++;
                 }
             }
-            if ((test % 2) != 0) {
+            if ((numIntersections % 2) != 0) {
                 shellIntersectionsResult.append(polygonFaceId);
                 goto NEXT_UV;
             }
