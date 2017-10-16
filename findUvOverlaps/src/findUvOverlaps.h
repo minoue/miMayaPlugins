@@ -4,6 +4,7 @@
 #include <maya/MDagPath.h>
 #include <maya/MFnMesh.h>
 #include <maya/MIntArray.h>
+#include <maya/MFloatArray.h>
 #include <maya/MPxCommand.h>
 #include <maya/MString.h>
 #include <maya/MSyntax.h>
@@ -56,6 +57,8 @@ private:
     static MDagPath mDagPath;
     MFnMesh fnMesh;
     bool verbose;
+    MFloatArray uArray;
+    MFloatArray vArray;
 };
 
 #endif /* defined(__FINDUVOVERLAPS_H__) */
