@@ -98,6 +98,8 @@ bool FindUvOverlaps::checkCrossingNumber(float& u, float& v, std::vector<int>& u
     float u_next;
     float v_next;
     float u2 = u+10.0;
+    float area1;
+    float area2;
 
     int polygonVertexCount = uvIds.size();
     int lastIndex = polygonVertexCount - 1;
@@ -122,13 +124,13 @@ bool FindUvOverlaps::checkCrossingNumber(float& u, float& v, std::vector<int>& u
             u_next = uArray[nextID];
             v_next = vArray[nextID];
         }
-        float area1 = getTriangleArea(u, v, u_current, v_current, u2, v);
-        float area2 = getTriangleArea(u, v, u_next, v_next, u2, v);
+        area1 = getTriangleArea(u, v, u_current, v_current, u2, v);
+        area2 = getTriangleArea(u, v, u_next, v_next, u2, v);
         if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
             toggleA = false;
         }
-        float area1 = getTriangleArea(u_current, v_current, u, v, u_next, v_next);
-        float area2 = getTriangleArea(u_current, v_current, u2, v, u_next, v_next);
+        area1 = getTriangleArea(u_current, v_current, u, v, u_next, v_next);
+        area2 = getTriangleArea(u_current, v_current, u2, v, u_next, v_next);
         if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
             toggleB = false;
         }
