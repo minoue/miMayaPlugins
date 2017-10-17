@@ -33,7 +33,6 @@ typedef struct _threadDataTag {
     int end;
     MString name;
     taskData* tdata;
-
 } threadData;
 
 FindUvOverlaps::FindUvOverlaps()
@@ -92,6 +91,59 @@ bool FindUvOverlaps::checkShellIntersection(UVShell& s1, UVShell& s2)
     }
 }
 
+bool FindUvOverlaps::checkCrossingNumber(float& u, float& v, std::vector<int>& uvIds)
+{
+    float u_current;
+    float v_current;
+    float u_next;
+    float v_next;
+    float u2 = u+10.0;
+
+    int polygonVertexCount = uvIds.size();
+    int lastIndex = polygonVertexCount - 1;
+
+    int numIntersections = 0;
+    for (int currentIndex=0; currentIndex<polygonVertexCount; currentIndex++) {
+        bool toggleA = true;
+        bool toggleB = true;
+        if (currentIndex == lastIndex) {
+            int& currentID = uvIds[currentIndex];
+            int& nextID = uvIds[0];
+            u_current = uArray[currentID];
+            v_current = vArray[currentID];
+            u_next = uArray[nextID];
+            v_next = vArray[nextID];
+        }
+        else {
+            int& currentID = uvIds[currentIndex];
+            int& nextID = uvIds[currentIndex+1];
+            u_current = uArray[currentID];
+            v_current = vArray[currentID];
+            u_next = uArray[nextID];
+            v_next = vArray[nextID];
+        }
+        float area1 = getTriangleArea(u, v, u_current, v_current, u2, v);
+        float area2 = getTriangleArea(u, v, u_next, v_next, u2, v);
+        if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
+            toggleA = false;
+        }
+        float area1 = getTriangleArea(u_current, v_current, u, v, u_next, v_next);
+        float area2 = getTriangleArea(u_current, v_current, u2, v, u_next, v_next);
+        if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
+            toggleB = false;
+        }
+        if (toggleA == true && toggleB == true) {
+            numIntersections++;
+        }
+    }
+
+    if ((numIntersections % 2) != 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
 {
     MStatus status;
@@ -103,11 +155,6 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
     float u;
     float v;
     float u2 = u+10.0;
-
-    float u_current;
-    float v_current;
-    float u_next;
-    float v_next;
 
     float area1;
     float area2;
@@ -145,53 +192,13 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
 
         for (polygonIter = shellB.polygonIDs.begin(); polygonIter != shellB.polygonIDs.end(); ++polygonIter) {
             polygonFaceId = *polygonIter;
+            std::vector<int>& polygonUvIds = uvMap[polygonFaceId];
 
-            std::vector<int>& uvIdVector = uvMap[polygonFaceId];
-
-            int polygonVertexCount = uvIdVector.size();
-            int lastIndex = polygonVertexCount - 1;
-
-            int numIntersections = 0;
-            for (int currentIndex=0; currentIndex<polygonVertexCount; currentIndex++) {
-                bool toggleA = true;
-                bool toggleB = true;
-                if (currentIndex == lastIndex) {
-                    int& currentID = uvIdVector[currentIndex];
-                    int& nextID = uvIdVector[0];
-                    u_current = uArray[currentID];
-                    v_current = vArray[currentID];
-                    u_next = uArray[nextID];
-                    v_next = vArray[nextID];
-                }
-                else {
-                    int& currentID = uvIdVector[currentIndex];
-                    int& nextID = uvIdVector[currentIndex+1];
-                    u_current = uArray[currentID];
-                    v_current = vArray[currentID];
-                    u_next = uArray[nextID];
-                    v_next = vArray[nextID];
-                }
-                area1 = getTriangleArea(u, v, u_current, v_current, u2, v);
-                area2 = getTriangleArea(u, v, u_next, v_next, u2, v);
-                if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
-                    toggleA = false;
-                }
-                area1 = getTriangleArea(u_current, v_current, u, v, u_next, v_next);
-                area2 = getTriangleArea(u_current, v_current, u2, v, u_next, v_next);
-                if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
-                    toggleB = false;
-                }
-                if (toggleA == true && toggleB == true) {
-                    numIntersections++;
-                }
-            }
-            if ((numIntersections % 2) != 0) {
+            bool isInPolygon = checkCrossingNumber(u, v, polygonUvIds);
+            if (isInPolygon == true) {
                 shellIntersectionsResult.append(polygonFaceId);
-                goto NEXT_UV;
             }
         }
-        NEXT_UV:
-        ;
     }
     return MS::kSuccess;
 }

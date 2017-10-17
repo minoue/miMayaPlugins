@@ -47,6 +47,7 @@ public:
     MIntArray shellIntersectionsResult;
 
     MStatus createTaskData(int numPolygons, MString fullPath);
+    bool checkCrossingNumber(float& u, float& v, std::vector<int>& uvIds);
     bool checkShellIntersection(UVShell& s1, UVShell& s2);
     MStatus findShellIntersections(UVShell& shellA, UVShell& shellB);
     static void createThreadData(void* data, MThreadRootTask* root);
