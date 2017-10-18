@@ -199,6 +199,7 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
             bool isInPolygon = checkCrossingNumber(u, v, polygonUvIds);
             if (isInPolygon == true) {
                 shellIntersectionsResult.append(polygonFaceId);
+                break;
             }
         }
     }
