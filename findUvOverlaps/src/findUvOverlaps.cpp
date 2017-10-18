@@ -12,12 +12,13 @@
 #include <algorithm>
 #include <iostream>
 #include <map>
-#include <unordered_map>
 #include <string>
 
 #define NUM_TASKS 16
 
 MDagPath FindUvOverlaps::mDagPath;
+MFloatArray FindUvOverlaps::suArray;
+MFloatArray FindUvOverlaps::svArray;
 
 typedef struct _taskDataTag {
     int start;
@@ -27,6 +28,15 @@ typedef struct _taskDataTag {
     int* boolArray;
 } taskData;
 
+typedef struct _shellTaskDataTag {
+    std::vector<int> borderUvPoints;
+    std::unordered_set<int> polygonIDs;
+    UVShell* shellA;
+    UVShell* shellB;
+    std::unordered_map<int, std::vector<int> > uvMap;
+    std::vector<int> resultVector;
+} shellTaskData;
+
 typedef struct _threadDataTag {
     int threadNo;
     int start;
@@ -34,6 +44,14 @@ typedef struct _threadDataTag {
     MString name;
     taskData* tdata;
 } threadData;
+
+typedef struct _shellThreadDataTag {
+    int threadNo;
+    int start;
+    int end;
+    std::vector<int> result;
+    shellTaskData* stData;
+} shellThreadData;
 
 FindUvOverlaps::FindUvOverlaps()
 {
@@ -88,6 +106,58 @@ bool FindUvOverlaps::checkShellIntersection(UVShell& s1, UVShell& s2)
         return false;
     } else {
         return true;
+    }
+}
+
+bool FindUvOverlaps::checkCrossingNumber2(float& u, float& v, std::vector<int>& uvIds)
+{
+    float u_current, v_current;
+    float u_next, v_next;
+    float area1, area2;
+    float u2 = u+10.0;
+
+    int polygonVertexCount = uvIds.size();
+    int lastIndex = polygonVertexCount - 1;
+
+    int numIntersections = 0;
+    for (int currentIndex=0; currentIndex<polygonVertexCount; currentIndex++) {
+        bool toggleA = true;
+        bool toggleB = true;
+        if (currentIndex == lastIndex) {
+            int& currentID = uvIds[currentIndex];
+            int& nextID = uvIds[0];
+            u_current = suArray[currentID];
+            v_current = svArray[currentID];
+            u_next = suArray[nextID];
+            v_next = svArray[nextID];
+        }
+        else {
+            int& currentID = uvIds[currentIndex];
+            int& nextID = uvIds[currentIndex+1];
+            u_current = suArray[currentID];
+            v_current = svArray[currentID];
+            u_next = suArray[nextID];
+            v_next = svArray[nextID];
+        }
+        area1 = getTriangleArea(u, v, u_current, v_current, u2, v);
+        area2 = getTriangleArea(u, v, u_next, v_next, u2, v);
+        if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
+            toggleA = false;
+        }
+        area1 = getTriangleArea(u_current, v_current, u, v, u_next, v_next);
+        area2 = getTriangleArea(u_current, v_current, u2, v, u_next, v_next);
+        if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
+            toggleB = false;
+        }
+        if (toggleA == true && toggleB == true) {
+            numIntersections++;
+        }
+    }
+
+    if ((numIntersections % 2) != 0) {
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -170,25 +240,35 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
         uvMap[i] = uvs;
     }
 
-    for (int s = 0; s < numBorderPoints; s++) {
-        fnMesh.getUV(shellA.borderUvPoints[s], u, v);
+    // run multithread check
+    status = createShellTaskData(shellA, shellB, uvMap);
 
-        if (u < shellB.uMin || u > shellB.uMax) {
-            continue;
-        }
-        if (v < shellB.vMin || v > shellB.vMax) {
-            continue;
-        }
+    return MS::kSuccess;
+}
 
-        std::unordered_set<int>::iterator polygonIter;
-        for (polygonIter = shellB.polygonIDs.begin(); polygonIter != shellB.polygonIDs.end(); ++polygonIter) {
-            bool isInPolygon = checkCrossingNumber(u, v, uvMap[*polygonIter]);
-            if (isInPolygon == true) {
-                shellIntersectionsResult.append(*polygonIter);
-                break;
-            }
-        }
+MStatus FindUvOverlaps::createShellTaskData(UVShell& shellA, UVShell& shellB, std::unordered_map<int, std::vector<int> >& uvMap)
+{
+    MStatus stat = MThreadPool::init();
+    if (MStatus::kSuccess != stat) {
+        MString str = MString("Error creating threadpool");
+        MGlobal::displayError(str);
+        return MS::kFailure;
     }
+
+    shellTaskData shellData;
+    shellData.borderUvPoints = shellA.borderUvPoints;
+    shellData.polygonIDs = shellB.polygonIDs;
+    shellData.shellA = &shellA;
+    shellData.shellB = &shellB;
+    shellData.uvMap = uvMap;
+
+    MThreadPool::newParallelRegion(createShellThreadData, (void*)&shellData);
+    MThreadPool::release();
+
+    for (int i=0; i<shellData.resultVector.size(); i++) {
+        shellIntersectionsResult.append(shellData.resultVector[i]);
+    }
+
     return MS::kSuccess;
 }
 
@@ -227,6 +307,49 @@ MStatus FindUvOverlaps::createTaskData(int numPolygons, MString name)
     return MS::kSuccess;
 }
 
+void FindUvOverlaps::createShellThreadData(void* data, MThreadRootTask* root)
+{
+    shellTaskData* shellTaskD = (shellTaskData*)data;
+    // threadData tdata[NUM_TASKS];
+    shellThreadData stData[NUM_TASKS];
+
+    int numBorderPoints = shellTaskD->borderUvPoints.size();
+    int taskLength = (numBorderPoints + NUM_TASKS - 1) / NUM_TASKS;
+    int start = 0;
+    int end = taskLength;
+    int lastTask = NUM_TASKS - 1;
+
+    for (int i = 0; i < NUM_TASKS; ++i) {
+        if (i == lastTask) {
+            end = numBorderPoints;
+        }
+        stData[i].threadNo = i;
+        stData[i].start = start;
+        stData[i].end = end;
+        stData[i].stData = shellTaskD;
+
+        start += taskLength;
+        end += taskLength;
+
+        MThreadPool::createTask(findShellIntersectionsMT, (void*)&stData[i], root);
+    }
+    MThreadPool::executeAndJoin(root);
+
+    std::unordered_set<int> resultSet;
+    for (int i=0; i<NUM_TASKS; i++) {
+        std::vector<int>& result = stData[i].result;
+        std::vector<int>::iterator itVec;
+        for (itVec = result.begin(); itVec != result.end() ; ++itVec) {
+            resultSet.insert(*itVec);
+        }
+    }
+    std::unordered_set<int>::iterator resultSetIter;
+    for (resultSetIter = resultSet.begin(); resultSetIter != resultSet.end(); ++resultSetIter) {
+        // shellIntersectionsResult.append(*resultSetIter);
+        shellTaskD->resultVector.push_back(*resultSetIter);
+    }
+}
+
 void FindUvOverlaps::createThreadData(void* data, MThreadRootTask* root)
 {
     taskData* taskD = (taskData*)data;
@@ -262,6 +385,43 @@ void FindUvOverlaps::createThreadData(void* data, MThreadRootTask* root)
             taskD->innerIntersections.append(i);
         }
     }
+}
+
+MThreadRetVal FindUvOverlaps::findShellIntersectionsMT(void* data)
+{
+    shellThreadData* myData = (shellThreadData*)data;
+    std::vector<int>& borderUVs = myData->stData->borderUvPoints;
+    float u, v;
+    MFnMesh fnMesh(mDagPath);
+    for (int i = myData->start; i<myData->end; i++) {
+        int& id = borderUVs[i]; // UV to check against shell
+        std::unordered_set<int>& polygonIDs = myData->stData->polygonIDs;; //Shell polygons to be checked
+        fnMesh.getUV(id, u, v);
+
+        float& uMin = myData->stData->shellB->uMin;
+        float& uMax = myData->stData->shellB->uMax;
+        float& vMin = myData->stData->shellB->vMin;
+        float& vMax = myData->stData->shellB->vMax;
+
+        if (u < uMin || u > uMax) {
+            continue;
+        }
+        if (v < vMin || v > vMax) {
+            continue;
+        }
+
+        std::unordered_set<int>::iterator polygonIter;
+        for (polygonIter = myData->stData->shellB->polygonIDs.begin(); polygonIter != myData->stData->shellB->polygonIDs.end(); ++polygonIter) {
+            bool isInPolygon = checkCrossingNumber2(u, v, myData->stData->uvMap[*polygonIter]);
+            if (isInPolygon == true) {
+                // shellIntersectionsResult.append(*polygonIter);
+                myData->result.push_back(*polygonIter);
+                break;
+            }
+        }
+    }
+
+    return (MThreadRetVal)0;
 }
 
 MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
@@ -407,6 +567,7 @@ MStatus FindUvOverlaps::redoIt()
 
         // commnets here
         fnMesh.getUVs(uArray, vArray);
+        fnMesh.getUVs(suArray, svArray);
 
         for (int i = 0; i < numUVs; i++) {
             UVPoint p;

@@ -11,6 +11,7 @@
 #include <maya/MThreadPool.h>
 #include <unordered_set>
 #include <vector>
+#include <unordered_map>
 
 typedef struct _uvPointData {
     float u;
@@ -47,12 +48,16 @@ public:
     MIntArray shellIntersectionsResult;
 
     MStatus createTaskData(int numPolygons, MString fullPath);
+    MStatus createShellTaskData(UVShell& shellA, UVShell& shellB, std::unordered_map<int, std::vector<int> >& uvMap);
     bool checkCrossingNumber(float& u, float& v, std::vector<int>& uvIds);
+    static bool checkCrossingNumber2(float& u, float& v, std::vector<int>& uvIds);
     bool checkShellIntersection(UVShell& s1, UVShell& s2);
     MStatus findShellIntersections(UVShell& shellA, UVShell& shellB);
     static void createThreadData(void* data, MThreadRootTask* root);
+    static void createShellThreadData(void* data, MThreadRootTask* root);
+    static MThreadRetVal findShellIntersectionsMT(void* data);
     static MThreadRetVal findInnerIntersectionsMT(void* data);
-    float getTriangleArea(float& Ax, float& Ay, float& Bx, float& By, float& Cx, float& Cy);
+    static float getTriangleArea(float& Ax, float& Ay, float& Bx, float& By, float& Cx, float& Cy);
 
 private:
     static MDagPath mDagPath;
@@ -60,6 +65,8 @@ private:
     bool verbose;
     MFloatArray uArray;
     MFloatArray vArray;
+    static MFloatArray suArray;
+    static MFloatArray svArray;
 };
 
 #endif /* defined(__FINDUVOVERLAPS_H__) */
