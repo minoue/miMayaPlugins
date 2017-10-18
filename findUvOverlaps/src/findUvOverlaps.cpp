@@ -93,13 +93,10 @@ bool FindUvOverlaps::checkShellIntersection(UVShell& s1, UVShell& s2)
 
 bool FindUvOverlaps::checkCrossingNumber(float& u, float& v, std::vector<int>& uvIds)
 {
-    float u_current;
-    float v_current;
-    float u_next;
-    float v_next;
+    float u_current, v_current;
+    float u_next, v_next;
+    float area1, area2;
     float u2 = u+10.0;
-    float area1;
-    float area2;
 
     int polygonVertexCount = uvIds.size();
     int lastIndex = polygonVertexCount - 1;
@@ -151,15 +148,9 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
     MStatus status;
 
     int numUVsInShellA = shellA.uvPoints.size();
-
     int numBorderPoints = shellA.borderUvPoints.size();
 
-    float u;
-    float v;
-    float u2 = u+10.0;
-
-    float area1;
-    float area2;
+    float u, v;
 
     MIntArray uvCounts;
     MIntArray uvIds;
@@ -171,9 +162,9 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
     int counter = 0;
     for (int i=0; i<uvCounts.length(); i++) {
         int count = uvCounts[i];
-        std::vector<int> uvs;
+        std::vector<int> uvs(count);
         for (int c=0; c<count; c++) {
-            uvs.push_back(uvIds[counter]);
+            uvs[c] = uvIds[counter];
             counter++;
         }
         uvMap[i] = uvs;
@@ -190,15 +181,10 @@ MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
         }
 
         std::unordered_set<int>::iterator polygonIter;
-        int polygonFaceId;
-
         for (polygonIter = shellB.polygonIDs.begin(); polygonIter != shellB.polygonIDs.end(); ++polygonIter) {
-            polygonFaceId = *polygonIter;
-            std::vector<int>& polygonUvIds = uvMap[polygonFaceId];
-
-            bool isInPolygon = checkCrossingNumber(u, v, polygonUvIds);
+            bool isInPolygon = checkCrossingNumber(u, v, uvMap[*polygonIter]);
             if (isInPolygon == true) {
-                shellIntersectionsResult.append(polygonFaceId);
+                shellIntersectionsResult.append(*polygonIter);
                 break;
             }
         }
