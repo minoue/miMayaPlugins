@@ -4,14 +4,12 @@
 #include <maya/MGlobal.h>
 #include <maya/MItMeshPolygon.h>
 #include <maya/MItMeshVertex.h>
-#include <maya/MPointArray.h>
 #include <maya/MSelectionList.h>
 #include <maya/MStringArray.h>
 #include <maya/MTimer.h>
 
 #include <algorithm>
 #include <iostream>
-#include <map>
 #include <string>
 
 #define NUM_TASKS 16
@@ -432,7 +430,7 @@ MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
 
     int vertexList[3];
     MIntArray vertexIdArray;
-    std::map<int, int> localVtxIdMap;
+    std::unordered_map<int, int> localVtxIdMap;
 
     for (int faceId = myData->start; faceId < myData->end; faceId++) {
         fnMesh.getPolygonVertices(faceId, vertexIdArray);
