@@ -44,15 +44,12 @@ public:
     static void* creater();
     static MSyntax newSyntax();
 
-    MIntArray innerIntersectionsResult;
-    MIntArray shellIntersectionsResult;
-
+    bool checkShellIntersection(UVShell& s1, UVShell& s2);
     MStatus createTaskData(int numPolygons, MString fullPath);
     MStatus createShellTaskData(UVShell& shellA, UVShell& shellB, std::unordered_map<int, std::vector<int> >& uvMap);
-    bool checkCrossingNumber(float& u, float& v, std::vector<int>& uvIds);
-    static bool checkCrossingNumber2(float& u, float& v, std::vector<int>& uvIds);
-    bool checkShellIntersection(UVShell& s1, UVShell& s2);
     MStatus findShellIntersections(UVShell& shellA, UVShell& shellB);
+
+    static bool checkCrossingNumber(float& u, float& v, std::vector<int>& uvIds);
     static void createThreadData(void* data, MThreadRootTask* root);
     static void createShellThreadData(void* data, MThreadRootTask* root);
     static MThreadRetVal findShellIntersectionsMT(void* data);
@@ -60,13 +57,13 @@ public:
     static float getTriangleArea(float& Ax, float& Ay, float& Bx, float& By, float& Cx, float& Cy);
 
 private:
-    static MDagPath mDagPath;
+    MIntArray innerIntersectionsResult;
+    MIntArray shellIntersectionsResult;
     MFnMesh fnMesh;
     bool verbose;
-    MFloatArray uArray;
-    MFloatArray vArray;
-    static MFloatArray suArray;
-    static MFloatArray svArray;
+    static MDagPath mDagPath;
+    static MFloatArray uArray;
+    static MFloatArray vArray;
 };
 
 #endif /* defined(__FINDUVOVERLAPS_H__) */
