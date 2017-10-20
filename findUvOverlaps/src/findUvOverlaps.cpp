@@ -29,7 +29,7 @@ struct taskDataTag {
 struct shellTaskDataTag {
     UVShell* shellA;
     UVShell* shellB;
-    std::unordered_map<int, std::vector<int> > uvMap;
+    std::unordered_map<int, std::vector<int> >* uvMap;
     std::vector<int> resultVector;
 };
 
@@ -157,40 +157,9 @@ bool FindUvOverlaps::checkCrossingNumber(float& u, float& v, std::vector<int>& u
     }
 }
 
-MStatus FindUvOverlaps::findShellIntersections(UVShell& shellA, UVShell& shellB)
-{
-    MStatus status;
-
-    int numUVsInShellA = shellA.uvPoints.size();
-    int numBorderPoints = shellA.borderUvPoints.size();
-
-    float u, v;
-
-    MIntArray uvCounts;
-    MIntArray uvIds;
-
-    fnMesh.getAssignedUVs(uvCounts, uvIds);
-
-    std::unordered_map<int, std::vector<int> > uvMap;
-
-    int counter = 0;
-    for (int i=0; i<uvCounts.length(); i++) {
-        int count = uvCounts[i];
-        std::vector<int> uvs(count);
-        for (int c=0; c<count; c++) {
-            uvs[c] = uvIds[counter];
-            counter++;
-        }
-        uvMap[i] = uvs;
-    }
-
-    // run multithread check
-    status = createShellTaskData(shellA, shellB, uvMap);
-
-    return MS::kSuccess;
-}
-
-MStatus FindUvOverlaps::createShellTaskData(UVShell& shellA, UVShell& shellB, std::unordered_map<int, std::vector<int> >& uvMap)
+MStatus FindUvOverlaps::createShellTaskData(UVShell& shellA,
+                                            UVShell& shellB,
+                                            std::unordered_map<int, std::vector<int> >& uvMap)
 {
     MStatus stat = MThreadPool::init();
     if (MStatus::kSuccess != stat) {
@@ -202,13 +171,13 @@ MStatus FindUvOverlaps::createShellTaskData(UVShell& shellA, UVShell& shellB, st
     shellTaskDataTag shellTaskData;
     shellTaskData.shellA = &shellA;
     shellTaskData.shellB = &shellB;
-    shellTaskData.uvMap = uvMap;
+    shellTaskData.uvMap = &uvMap;
     shellTaskData.resultVector.resize(NUM_TASKS);
 
     MThreadPool::newParallelRegion(createShellThreadData, (void*)&shellTaskData);
     MThreadPool::release();
 
-    // Append bad polygons found in each thread to the final result array
+    Append bad polygons found in each thread to the final result array
     for (int i=0; i<shellTaskData.resultVector.size(); i++) {
         shellIntersectionsResult.append(shellTaskData.resultVector[i]);
     }
@@ -355,7 +324,10 @@ MThreadRetVal FindUvOverlaps::findShellIntersectionsMT(void* data)
 
         std::unordered_set<int>::iterator polygonIter;
         for (polygonIter = threadData->shellTaskData->shellB->polygonIDs.begin(); polygonIter != threadData->shellTaskData->shellB->polygonIDs.end(); ++polygonIter) {
-            bool isInPolygon = checkCrossingNumber(u, v, threadData->shellTaskData->uvMap[*polygonIter]);
+            bool isInPolygon = checkCrossingNumber(
+                    u,
+                    v,
+                    threadData->shellTaskData->uvMap->operator[](*polygonIter));
             if (isInPolygon == true) {
                 threadData->result.push_back(*polygonIter);
                 break;
@@ -507,8 +479,23 @@ MStatus FindUvOverlaps::redoIt()
             }
         }
 
-        // commnets here
+        // Get UV values
         fnMesh.getUVs(uArray, vArray);
+
+        MIntArray uvCounts;
+        MIntArray uvIds;
+        fnMesh.getAssignedUVs(uvCounts, uvIds);
+        std::unordered_map<int, std::vector<int> > uvMap;
+        int counter = 0;
+        for (int i=0; i<uvCounts.length(); i++) {
+            int count = uvCounts[i];
+            std::vector<int> uvs(count);
+            for (int c=0; c<count; c++) {
+                uvs[c] = uvIds[counter];
+                counter++;
+            }
+            uvMap[i] = uvs;
+        }
 
         for (int i = 0; i < numUVs; i++) {
             UVPoint p;
@@ -543,8 +530,8 @@ MStatus FindUvOverlaps::redoIt()
             bool isIntersected = checkShellIntersection(shellA, shellB);
 
             if (isIntersected == true) {
-                findShellIntersections(shellA, shellB);
-                findShellIntersections(shellB, shellA);
+                status = createShellTaskData(shellA, shellB, uvMap);
+                status = createShellTaskData(shellB, shellA, uvMap);
             } else {
             }
         }

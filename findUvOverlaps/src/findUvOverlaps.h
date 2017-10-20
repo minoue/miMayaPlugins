@@ -64,6 +64,7 @@ private:
     static MDagPath mDagPath;
     static MFloatArray uArray;
     static MFloatArray vArray;
+    // static std::unordered_map<int, std::vector<int> > uvMap;
 };
 
 #endif /* defined(__FINDUVOVERLAPS_H__) */
