@@ -177,7 +177,7 @@ MStatus FindUvOverlaps::createShellTaskData(UVShell& shellA,
     MThreadPool::newParallelRegion(createShellThreadData, (void*)&shellTaskData);
     MThreadPool::release();
 
-    Append bad polygons found in each thread to the final result array
+    // Append bad polygons found in each thread to the final result array
     for (int i=0; i<shellTaskData.resultVector.size(); i++) {
         shellIntersectionsResult.append(shellTaskData.resultVector[i]);
     }
