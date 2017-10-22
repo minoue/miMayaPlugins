@@ -297,7 +297,7 @@ MThreadRetVal FindUvOverlaps::findShellIntersectionsMT(void* data)
     shellThreadDataTag* threadData = (shellThreadDataTag*)data;
     std::vector<int>& borderUVs = threadData->shellTaskData->shellA->borderUvPoints;
     float u, v;
-    MFnMesh fnMesh;
+    MFnMesh fnMesh(mDagPath);
 
     for (int i = threadData->start; i<threadData->end; i++) {
         fnMesh.getUV(borderUVs[i], u, v);
