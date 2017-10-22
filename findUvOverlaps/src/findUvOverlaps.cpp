@@ -244,6 +244,8 @@ void FindUvOverlaps::createShellThreadData(void* data, MThreadRootTask* root)
     std::unordered_set<int> resultSet;
     for (int i=0; i<NUM_TASKS; i++) {
         std::vector<int>& result = shellThreadData[i].result;
+        std::cout << result.size() << std::endl;
+        MGlobal::displayInfo("asdfasdf");
         std::vector<int>::iterator itVec;
         for (itVec = result.begin(); itVec != result.end() ; ++itVec) {
             resultSet.insert(*itVec);
@@ -297,10 +299,10 @@ MThreadRetVal FindUvOverlaps::findShellIntersectionsMT(void* data)
     shellThreadDataTag* threadData = (shellThreadDataTag*)data;
     std::vector<int>& borderUVs = threadData->shellTaskData->shellA->borderUvPoints;
     float u, v;
+    MFnMesh fnMesh;
 
     for (int i = threadData->start; i<threadData->end; i++) {
-        u = uArray[borderUVs[i]];
-        v = vArray[borderUVs[i]];
+        fnMesh.getUV(borderUVs[i], u, v);
 
         float& uMin = threadData->shellTaskData->shellB->uMin;
         float& uMax = threadData->shellTaskData->shellB->uMax;
