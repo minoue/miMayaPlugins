@@ -83,7 +83,7 @@ void combination(int N, std::vector<std::vector<int> >& vec)
 }
 
 float FindUvOverlaps::getTriangleArea(float& Ax, float& Ay, float& Bx, float& By, float& Cx, float& Cy) {
-    float area = ((Ax * (By - Cy)) + (Bx * (Cy - Ay)) + (Cx * (Ay - By))) / 2.0;
+    float area = ((Ax * (By - Cy)) + (Bx * (Cy - Ay)) + (Cx * (Ay - By))) / (float)2.0;
     return area;
 }
 
@@ -110,10 +110,10 @@ bool FindUvOverlaps::checkCrossingNumber(float& u, float& v, std::vector<int>& u
     float u_current, v_current;
     float u_next, v_next;
     float area1, area2;
-    float u2 = u+10.0;
+    float u2 = u + (float)10.0;
     bool isCrossingA;
     bool isCrossingB;
-    int polygonVertexCount = uvIds.size();
+    int polygonVertexCount = (int)uvIds.size();
     int numIntersections = 0;
 
     for (int currentIndex=0; currentIndex<polygonVertexCount; currentIndex++) {
@@ -219,7 +219,7 @@ void FindUvOverlaps::createShellThreadData(void* data, MThreadRootTask* root)
     shellTaskDataTag* shellTaskData = (shellTaskDataTag*)data;
     shellThreadDataTag shellThreadData[NUM_TASKS];
 
-    int numBorderPoints = shellTaskData->shellA->borderUvPoints.size();
+    int numBorderPoints = (int)shellTaskData->shellA->borderUvPoints.size();
     int taskLength = (numBorderPoints + NUM_TASKS - 1) / NUM_TASKS;
     int start = 0;
     int end = taskLength;
