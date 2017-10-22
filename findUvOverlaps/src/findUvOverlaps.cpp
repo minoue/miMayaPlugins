@@ -206,7 +206,7 @@ MStatus FindUvOverlaps::createTaskData(int numPolygons, MString name)
 
     // std::cout << "size of array" << taskData.resultIndexArray.length() << std::endl;
     if (taskData.innerIntersections.length() != 0) {
-        for (int i = 0; i < taskData.innerIntersections.length(); i++) {
+        for (unsigned int i = 0; i < taskData.innerIntersections.length(); i++) {
             innerIntersectionsResult.copy(taskData.innerIntersections);
         }
     }
@@ -244,8 +244,6 @@ void FindUvOverlaps::createShellThreadData(void* data, MThreadRootTask* root)
     std::unordered_set<int> resultSet;
     for (int i=0; i<NUM_TASKS; i++) {
         std::vector<int>& result = shellThreadData[i].result;
-        std::cout << result.size() << std::endl;
-        MGlobal::displayInfo("asdfasdf");
         std::vector<int>::iterator itVec;
         for (itVec = result.begin(); itVec != result.end() ; ++itVec) {
             resultSet.insert(*itVec);
@@ -346,7 +344,7 @@ MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
         fnMesh.getPolygonVertices(faceId, vertexIdArray);
         int numTriangles = vertexIdArray.length() - 2;
 
-        for (int localId = 0; localId < vertexIdArray.length(); localId++) {
+        for (unsigned int localId = 0; localId < vertexIdArray.length(); localId++) {
             localVtxIdMap[vertexIdArray[localId]] = localId;
         }
 
@@ -442,7 +440,7 @@ MStatus FindUvOverlaps::redoIt()
         // Setup uv shell objects
         std::vector<UVShell> uvShellArray;
         uvShellArray.resize(numUVshells);
-        for (int i = 0; i < numUVshells; i++) {
+        for (unsigned int i = 0; i < numUVshells; i++) {
             UVShell shell;
             uvShellArray[i] = shell;
         }
@@ -459,13 +457,13 @@ MStatus FindUvOverlaps::redoIt()
                 int thisIndex = uvIndexArray[0];
                 int shellNumber = uvShellIds[thisIndex];
                 itVerts.getConnectedFaces(connectedFacesArray);
-                for (int f = 0; f < connectedFacesArray.length(); f++) {
+                for (unsigned int f = 0; f < connectedFacesArray.length(); f++) {
                     int connectedFaceID = connectedFacesArray[f];
                     uvShellArray[shellNumber].polygonIDs.insert(connectedFaceID);
                 }
             } else {
                 // If current vertex has multiple UV points, its UVs are on a shell border
-                for (int uvi = 0; uvi < uvIndexArray.length(); uvi++) {
+                for (unsigned int uvi = 0; uvi < uvIndexArray.length(); uvi++) {
                     int uvIndex = uvIndexArray[uvi];
                     int shellNumber = uvShellIds[uvIndex];
                     uvShellArray[shellNumber].borderUvPoints.push_back(uvIndex);
@@ -481,7 +479,7 @@ MStatus FindUvOverlaps::redoIt()
         fnMesh.getAssignedUVs(uvCounts, uvIds);
         std::unordered_map<int, std::vector<int> > uvMap;
         int counter = 0;
-        for (int i=0; i<uvCounts.length(); i++) {
+        for (unsigned int i=0; i<uvCounts.length(); i++) {
             int count = uvCounts[i];
             std::vector<int> uvs(count);
             for (int c=0; c<count; c++) {
@@ -503,7 +501,7 @@ MStatus FindUvOverlaps::redoIt()
         }
 
         // Get min and max for each bounding box
-        for (int i = 0; i < numUVshells; i++) {
+        for (unsigned int i = 0; i < numUVshells; i++) {
             UVShell& shell = uvShellArray[i];
             shell.uMax = *std::max_element(shell.uVector.begin(), shell.uVector.end());
             shell.uMin = *std::min_element(shell.uVector.begin(), shell.uVector.end());
@@ -533,13 +531,13 @@ MStatus FindUvOverlaps::redoIt()
 
     // setup and return result
     MStringArray resultStrArray;
-    for (int i = 0; i < innerIntersectionsResult.length(); i++) {
+    for (unsigned int i = 0; i < innerIntersectionsResult.length(); i++) {
         MString index;
         index.set(innerIntersectionsResult[i]);
         MString n = fullPath + ".f[" + index + "]";
         resultStrArray.append(n);
     }
-    for (int i = 0; i < shellIntersectionsResult.length(); i++) {
+    for (unsigned int i = 0; i < shellIntersectionsResult.length(); i++) {
         MString index;
         index.set(shellIntersectionsResult[i]);
         MString n = fullPath + ".f[" + index + "]";
