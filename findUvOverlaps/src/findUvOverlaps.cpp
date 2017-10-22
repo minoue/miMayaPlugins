@@ -30,7 +30,7 @@ struct shellTaskDataTag {
     UVShell* shellA;
     UVShell* shellB;
     std::unordered_map<int, std::vector<int> >* uvMap;
-    std::vector<int> resultVector;
+    std::unordered_set<int> resultIndexSet;
 };
 
 struct threadDataTag {
@@ -166,14 +166,14 @@ MStatus FindUvOverlaps::createShellTaskData(UVShell& shellA,
     shellTaskData.shellA = &shellA;
     shellTaskData.shellB = &shellB;
     shellTaskData.uvMap = &uvMap;
-    shellTaskData.resultVector.resize(NUM_TASKS);
 
     MThreadPool::newParallelRegion(createShellThreadData, (void*)&shellTaskData);
     MThreadPool::release();
 
     // Append bad polygons found in each thread to the final result array
-    for (int i=0; i<shellTaskData.resultVector.size(); i++) {
-        shellIntersectionsResult.append(shellTaskData.resultVector[i]);
+    std::unordered_set<int>::iterator resultSetIter;
+    for (resultSetIter = shellTaskData.resultIndexSet.begin(); resultSetIter != shellTaskData.resultIndexSet.end(); ++resultSetIter) {
+        shellIntersectionsResult.append(*resultSetIter);
     }
 
     return MS::kSuccess;
@@ -188,8 +188,6 @@ MStatus FindUvOverlaps::createTaskData(int numPolygons, MString name)
         return MS::kFailure;
     }
 
-    // int numPolygons = end + 1;
-
     taskDataTag taskData;
     taskData.start = 0;
     taskData.end = numPolygons - 1;
@@ -201,7 +199,6 @@ MStatus FindUvOverlaps::createTaskData(int numPolygons, MString name)
     MThreadPool::release();
 
     // release reference to whole pool which deletes all threads
-    // MThreadPool::release();
     delete[] taskData.boolArray;
 
     // std::cout << "size of array" << taskData.resultIndexArray.length() << std::endl;
@@ -244,14 +241,14 @@ void FindUvOverlaps::createShellThreadData(void* data, MThreadRootTask* root)
     std::unordered_set<int> resultSet;
     for (int i=0; i<NUM_TASKS; i++) {
         std::vector<int>& result = shellThreadData[i].result;
-        std::vector<int>::iterator itVec;
-        for (itVec = result.begin(); itVec != result.end() ; ++itVec) {
-            resultSet.insert(*itVec);
+        if (result.size() == 0) {
+            continue;
+        } else {
+            std::vector<int>::iterator itVec;
+            for (itVec = result.begin(); itVec != result.end() ; ++itVec) {
+                shellTaskData->resultIndexSet.insert(*itVec);
+            }
         }
-    }
-    std::unordered_set<int>::iterator resultSetIter;
-    for (resultSetIter = resultSet.begin(); resultSetIter != resultSet.end(); ++resultSetIter) {
-        shellTaskData->resultVector.push_back(*resultSetIter);
     }
 }
 
