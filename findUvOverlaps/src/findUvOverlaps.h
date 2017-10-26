@@ -45,7 +45,7 @@ public:
     static MSyntax newSyntax();
 
     bool checkShellIntersection(UVShell& s1, UVShell& s2);
-    MStatus createTaskData(int numPolygons, MString fullPath);
+    MStatus createTaskData(int numPolygons);
     MStatus createShellTaskData(UVShell& shellA, UVShell& shellB, std::unordered_map<int, std::vector<int> >& uvMap);
     MStatus findShellIntersections(UVShell& shellA, UVShell& shellB);
 
@@ -64,7 +64,6 @@ private:
     static MDagPath mDagPath;
     static MFloatArray uArray;
     static MFloatArray vArray;
-    // static std::unordered_map<int, std::vector<int> > uvMap;
 };
 
 #endif /* defined(__FINDUVOVERLAPS_H__) */
