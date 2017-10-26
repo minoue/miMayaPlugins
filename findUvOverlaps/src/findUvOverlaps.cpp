@@ -2,7 +2,6 @@
 #include <maya/MArgDatabase.h>
 #include <maya/MArgList.h>
 #include <maya/MGlobal.h>
-#include <maya/MItMeshPolygon.h>
 #include <maya/MItMeshVertex.h>
 #include <maya/MSelectionList.h>
 #include <maya/MStringArray.h>
@@ -407,7 +406,8 @@ MStatus FindUvOverlaps::redoIt()
 
     // Setup timer
     MTimer timer;
-    timer.beginTimer();
+    double timerResult1;
+    double timerResult2;
 
     // Get basic mesh information
     fnMesh.setObject(mDagPath);
@@ -416,15 +416,39 @@ MStatus FindUvOverlaps::redoIt()
     int numVerts = fnMesh.numVertices();
     MString fullPath = mDagPath.fullPathName();
 
-    // run multithread
+    // run multithread for self intersection check
+    if (verbose) {
+        MGlobal::displayInfo("Checking internal self intersections.");
+    }
+
+    timer.beginTimer();
     status = createTaskData(numFaces);
+    timer.endTimer();
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    if (verbose) {
+        timerResult1 = timer.elapsedTime();
+        MString timeStr;
+        timeStr.set(timerResult1);
+        MGlobal::displayInfo("Finished self intersection check.");
+        MString r = "Result : " + timeStr + " seconds.";
+        MGlobal::displayInfo(r);
+    }
 
     MIntArray uvShellIds;
     unsigned int numUVshells;
     fnMesh.getUvShellsIds(uvShellIds, numUVshells);
     if (numUVshells == 1) {
-        // Do nothing when there is only one UV shell
+        if (verbose) {
+            MGlobal::displayInfo("No multiple shells are found.");
+        }
     } else {
+        if (verbose) {
+            MGlobal::displayInfo("Multiple UV shells are found. Running Shell intersection checks.");
+        }
+        // Timer for shell intersection check
+        timer.beginTimer();
+
         // Setup uv shell objects
         std::vector<UVShell> uvShellArray;
         uvShellArray.resize(numUVshells);
@@ -442,6 +466,7 @@ MStatus FindUvOverlaps::redoIt()
             itVerts.getUVIndices(uvIndexArray);
             if (numUniUv == 1) {
                 // If current vertex has only 1 UV point, its UV is inside of a UV shell
+                // Get and insert polygon IDs to the shell
                 int thisIndex = uvIndexArray[0];
                 int shellNumber = uvShellIds[thisIndex];
                 itVerts.getConnectedFaces(connectedFacesArray);
@@ -511,9 +536,21 @@ MStatus FindUvOverlaps::redoIt()
 
             if (isIntersected == true) {
                 status = createShellTaskData(shellA, shellB, uvMap);
+                CHECK_MSTATUS_AND_RETURN_IT(status);
                 status = createShellTaskData(shellB, shellA, uvMap);
+                CHECK_MSTATUS_AND_RETURN_IT(status);
             } else {
             }
+        }
+        
+        timer.endTimer();
+        if (verbose) {
+            timerResult2 = timer.elapsedTime();
+            MString timeStr;
+            timeStr.set(timerResult2);
+            MGlobal::displayInfo("Finished shell intersection check.");
+            MString r = "Result : " + timeStr + " seconds.";
+            MGlobal::displayInfo(r);
         }
     }
 
@@ -532,14 +569,14 @@ MStatus FindUvOverlaps::redoIt()
         resultStrArray.append(n);
     }
     MPxCommand::setResult(resultStrArray);
-
-    // Show time
-    timer.endTimer();
-    double resultTime = timer.elapsedTime();
-    MString timeStr;
-    timeStr.set(resultTime);
-    MString r = "Result : " + timeStr + " seconds.";
-    MGlobal::displayInfo(r);
+    
+    if (verbose) {
+        double resultTotal = timerResult1 + timerResult2;
+        MString resultTotalStr;
+        resultTotalStr.set(resultTotal);
+        MString r = "Result Total: " + resultTotalStr + " seconds.";
+        MGlobal::displayInfo(r);
+    }
 
     return MS::kSuccess;
 }
