@@ -47,7 +47,10 @@ public:
     bool checkShellIntersection(UVShell& s1, UVShell& s2);
     MStatus createTaskData(int numPolygons);
     MStatus createShellTaskData(UVShell& shellA, UVShell& shellB, std::unordered_map<int, std::vector<int> >& uvMap);
-    MStatus findShellIntersections(UVShell& shellA, UVShell& shellB);
+    MStatus findShellIntersectionsST(UVShell&shellA,
+                                     UVShell& shellB,
+                                     std::unordered_map<int, std::vector<int> >& uvMap,
+                                     int* resultBoolArray);
 
     static bool checkCrossingNumber(float& u, float& v, std::vector<int>& uvIds);
     static void createThreadData(void* data, MThreadRootTask* root);
@@ -61,9 +64,11 @@ private:
     MIntArray shellIntersectionsResult;
     MFnMesh fnMesh;
     bool verbose;
+    bool isMultiThreaded;
     static MDagPath mDagPath;
     static MFloatArray uArray;
     static MFloatArray vArray;
+    int* resultBoolArray;
 };
 
 #endif /* defined(__FINDUVOVERLAPS_H__) */

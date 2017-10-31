@@ -57,6 +57,7 @@ MSyntax FindUvOverlaps::newSyntax()
     MSyntax syntax;
     syntax.addArg(MSyntax::kString);
     syntax.addFlag("-v", "-verbose", MSyntax::kBoolean);
+    syntax.addFlag("-mt", "-multiThread", MSyntax::kBoolean);
     return syntax;
 }
 
@@ -317,6 +318,35 @@ MThreadRetVal FindUvOverlaps::findShellIntersectionsMT(void* data)
     return (MThreadRetVal)0;
 }
 
+MStatus FindUvOverlaps::findShellIntersectionsST(UVShell& shellA,
+                                                 UVShell& shellB,
+                                                 std::unordered_map<int, std::vector<int> >& uvMap,
+                                                 int* resultBoolArray)
+{
+    std::vector<int>& borderUVs = shellA.borderUvPoints;
+    for (int i=0; i<borderUVs.size(); i++) {
+        float u, v;
+        fnMesh.getUV(borderUVs[i], u, v);
+
+        if (u < shellB.uMin || u > shellB.uMax) {
+            continue;
+        }
+        if (v < shellB.vMin || v > shellB.vMax) {
+            continue;
+        }
+        std::unordered_set<int>::iterator polygonIter;
+        for (polygonIter = shellB.polygonIDs.begin(); polygonIter != shellB.polygonIDs.end(); ++polygonIter) {
+            bool isInPolygon = checkCrossingNumber(u, v, uvMap.operator[](*polygonIter));
+            if (isInPolygon == true) {
+                resultBoolArray[*polygonIter] = 1;
+                break;
+            }
+        }
+    }
+
+    return MS::kSuccess;
+}
+
 MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
 {
     threadDataTag* threadData = (threadDataTag*)data;
@@ -381,6 +411,11 @@ MStatus FindUvOverlaps::doIt(const MArgList& args)
         argData.getFlagArgument("-verbose", 0, verbose);
     else
         verbose = false;
+
+    if (argData.isFlagSet("-multiThread"))
+        argData.getFlagArgument("-multiThread", 0, isMultiThreaded);
+    else
+        isMultiThreaded = false;
 
     sel.getDagPath(0, mDagPath);
 
@@ -535,11 +570,21 @@ MStatus FindUvOverlaps::redoIt()
             bool isIntersected = checkShellIntersection(shellA, shellB);
 
             if (isIntersected == true) {
-                status = createShellTaskData(shellA, shellB, uvMap);
-                CHECK_MSTATUS_AND_RETURN_IT(status);
-                status = createShellTaskData(shellB, shellA, uvMap);
-                CHECK_MSTATUS_AND_RETURN_IT(status);
-            } else {
+                if (isMultiThreaded) {
+                    status = createShellTaskData(shellA, shellB, uvMap);
+                    CHECK_MSTATUS_AND_RETURN_IT(status);
+                    status = createShellTaskData(shellB, shellA, uvMap);
+                    CHECK_MSTATUS_AND_RETURN_IT(status);
+                }
+                else {
+                    resultBoolArray = new int[numFaces]();
+                    status = findShellIntersectionsST(shellA, shellB, uvMap, resultBoolArray);
+                    CHECK_MSTATUS_AND_RETURN_IT(status);
+                    status = findShellIntersectionsST(shellB, shellA, uvMap, resultBoolArray);
+                    CHECK_MSTATUS_AND_RETURN_IT(status);
+                }
+            }
+            else {
             }
         }
         
@@ -562,11 +607,25 @@ MStatus FindUvOverlaps::redoIt()
         MString n = fullPath + ".f[" + index + "]";
         resultStrArray.append(n);
     }
-    for (unsigned int i = 0; i < shellIntersectionsResult.length(); i++) {
+
+    if (isMultiThreaded) {
+        for (unsigned int i = 0; i < shellIntersectionsResult.length(); i++) {
+            MString index;
+            index.set(shellIntersectionsResult[i]);
+            MString n = fullPath + ".f[" + index + "]";
+            resultStrArray.append(n);
+        }
+    }
+    else {
         MString index;
-        index.set(shellIntersectionsResult[i]);
-        MString n = fullPath + ".f[" + index + "]";
-        resultStrArray.append(n);
+        for (int x=0; x<numFaces; x++) {
+            if (resultBoolArray[x] == 1) {
+                index.set(x);
+                MString n = fullPath + ".f[" + index + "]";
+                resultStrArray.append(n);
+            }
+        }
+        delete[] resultBoolArray;
     }
     MPxCommand::setResult(resultStrArray);
     
