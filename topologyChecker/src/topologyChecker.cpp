@@ -106,6 +106,17 @@ MStatus TopologyChecker::findZeroAreaFaces(MIntArray& indexArray, double& faceAr
     return status;
 }
 
+MStatus TopologyChecker::findMeshBorderEdges(MIntArray& indexArray)
+{
+    MStatus status;
+    for (MItMeshEdge mItEdge(mDagPath); !mItEdge.isDone(); mItEdge.next()) {
+        bool isBorder = mItEdge.onBoundary();
+        if (isBorder) {
+            indexArray.append(mItEdge.index());
+        }
+    }
+    return MS::kSuccess;
+}
 MStringArray TopologyChecker::setResultString(MIntArray& indexArray, std::string componentType)
 {
     MString fullpath = mDagPath.fullPathName();
@@ -204,6 +215,11 @@ MStatus TopologyChecker::doIt(const MArgList& args)
         status = findZeroAreaFaces(indexArray, faceAreaMax);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         resultArray = setResultString(indexArray, "face");
+        break;
+    case TopologyChecker::MESH_BORDER:
+        status = findMeshBorderEdges(indexArray);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        resultArray = setResultString(indexArray, "edge");
         break;
     case TopologyChecker::TEST:
         break;

@@ -28,6 +28,7 @@ public:
     MStatus findBiValentFaces(MIntArray& indexArray);
     MStatus findZeroAreaFaces(MIntArray& indexArray,
         double& faceAreaMax);
+    MStatus findMeshBorderEdges(MIntArray& indexArray);
     MStringArray setResultString(MIntArray& indexArray,
         std::string componentType);
 
@@ -38,6 +39,7 @@ public:
         LAMINA_FACES,
         BI_VALENT_FACES,
         ZERO_AREA_FACES,
+        MESH_BORDER,
         TEST
     };
 

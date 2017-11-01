@@ -7,6 +7,7 @@
 3. lamina faces
 4. bi-valent faces
 5. zero area faces
+6. mesh border edges
 
 
 ```python
