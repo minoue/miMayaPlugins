@@ -321,7 +321,7 @@ MThreadRetVal FindUvOverlaps::findShellIntersectionsMT(void* data)
 MStatus FindUvOverlaps::findShellIntersectionsST(UVShell& shellA,
                                                  UVShell& shellB,
                                                  std::unordered_map<int, std::vector<int> >& uvMap,
-                                                 int* resultBoolArray)
+                                                 std::vector<bool>& resultBoolVector)
 {
     std::vector<int>& borderUVs = shellA.borderUvPoints;
     for (int i=0; i<borderUVs.size(); i++) {
@@ -338,7 +338,7 @@ MStatus FindUvOverlaps::findShellIntersectionsST(UVShell& shellA,
         for (polygonIter = shellB.polygonIDs.begin(); polygonIter != shellB.polygonIDs.end(); ++polygonIter) {
             bool isInPolygon = checkCrossingNumber(u, v, uvMap.operator[](*polygonIter));
             if (isInPolygon == true) {
-                resultBoolArray[*polygonIter] = 1;
+                resultBoolVector[*polygonIter] = true;
                 break;
             }
         }
@@ -561,6 +561,10 @@ MStatus FindUvOverlaps::redoIt()
         std::vector<std::vector<int>> shellCombVec;
         combination(numUVshells, shellCombVec);
 
+        // Initialize bool vector for shell intersection result
+        resultBoolVector.resize(numFaces);
+        std::fill(resultBoolVector.begin(), resultBoolVector.end(), false);
+
         for (int i = 0; i < shellCombVec.size(); i++) {
             int& shellIndexA = shellCombVec[i][0];
             int& shellIndexB = shellCombVec[i][1];
@@ -577,10 +581,9 @@ MStatus FindUvOverlaps::redoIt()
                     CHECK_MSTATUS_AND_RETURN_IT(status);
                 }
                 else {
-                    resultBoolArray = new int[numFaces]();
-                    status = findShellIntersectionsST(shellA, shellB, uvMap, resultBoolArray);
+                    status = findShellIntersectionsST(shellA, shellB, uvMap, resultBoolVector);
                     CHECK_MSTATUS_AND_RETURN_IT(status);
-                    status = findShellIntersectionsST(shellB, shellA, uvMap, resultBoolArray);
+                    status = findShellIntersectionsST(shellB, shellA, uvMap, resultBoolVector);
                     CHECK_MSTATUS_AND_RETURN_IT(status);
                 }
             }
@@ -619,13 +622,12 @@ MStatus FindUvOverlaps::redoIt()
     else {
         MString index;
         for (int x=0; x<numFaces; x++) {
-            if (resultBoolArray[x] == 1) {
+            if (resultBoolVector[x] == true) {
                 index.set(x);
                 MString n = fullPath + ".f[" + index + "]";
                 resultStrArray.append(n);
             }
         }
-        delete[] resultBoolArray;
     }
     MPxCommand::setResult(resultStrArray);
     

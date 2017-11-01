@@ -50,7 +50,7 @@ public:
     MStatus findShellIntersectionsST(UVShell&shellA,
                                      UVShell& shellB,
                                      std::unordered_map<int, std::vector<int> >& uvMap,
-                                     int* resultBoolArray);
+                                     std::vector<bool>& resultBoolVector);
 
     static bool checkCrossingNumber(float& u, float& v, std::vector<int>& uvIds);
     static void createThreadData(void* data, MThreadRootTask* root);
@@ -68,7 +68,7 @@ private:
     static MDagPath mDagPath;
     static MFloatArray uArray;
     static MFloatArray vArray;
-    int* resultBoolArray;
+    std::vector<bool> resultBoolVector;
 };
 
 #endif /* defined(__FINDUVOVERLAPS_H__) */
