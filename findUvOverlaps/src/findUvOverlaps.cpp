@@ -125,6 +125,21 @@ bool FindUvOverlaps::checkCrossingNumber(float& u, float& v, std::vector<int>& u
             u_next = uArray[uvIds[currentIndex + 1]];
             v_next = vArray[uvIds[currentIndex + 1]];
         }
+
+        // If parallel edges
+        if (v == v_current && v == v_next)
+            continue;
+
+        // If upward edges
+        if (v_current < v_next)
+            if (v == v_next)
+                continue;
+
+        // If downward edges
+        if (v_current > v_next)
+            if (v == v_current)
+                continue;
+
         area1 = getTriangleArea(u, v, u_current, v_current, u2, v);
         area2 = getTriangleArea(u, v, u_next, v_next, u2, v);
         if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
