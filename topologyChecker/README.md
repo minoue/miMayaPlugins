@@ -7,9 +7,6 @@
 3. lamina faces
 4. bi-valent faces
 5. zero area faces
-6. zero area uv 
-7. udim border check
-8. uvoverlap (not implemented yet)
 
 
 ```python
