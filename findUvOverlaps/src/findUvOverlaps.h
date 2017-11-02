@@ -5,6 +5,7 @@
 #include <maya/MFnMesh.h>
 #include <maya/MIntArray.h>
 #include <maya/MFloatArray.h>
+#include <maya/MStringArray.h>
 #include <maya/MPxCommand.h>
 #include <maya/MString.h>
 #include <maya/MSyntax.h>
@@ -69,6 +70,7 @@ private:
     static MFloatArray uArray;
     static MFloatArray vArray;
     std::vector<bool> resultBoolVector;
+    MStringArray resultStrArray;
 };
 
 #endif /* defined(__FINDUVOVERLAPS_H__) */

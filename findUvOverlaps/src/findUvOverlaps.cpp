@@ -4,7 +4,6 @@
 #include <maya/MGlobal.h>
 #include <maya/MItMeshVertex.h>
 #include <maya/MSelectionList.h>
-#include <maya/MStringArray.h>
 #include <maya/MTimer.h>
 
 #include <algorithm>
@@ -476,6 +475,14 @@ MStatus FindUvOverlaps::redoIt()
     timer.endTimer();
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
+    // Setup result for self intersections
+    for (unsigned int i = 0; i < innerIntersectionsResult.length(); i++) {
+        MString index;
+        index.set(innerIntersectionsResult[i]);
+        MString n = fullPath + ".f[" + index + "]";
+        resultStrArray.append(n);
+    }
+
     if (verbose) {
         timerResult1 = timer.elapsedTime();
         MString timeStr;
@@ -491,6 +498,7 @@ MStatus FindUvOverlaps::redoIt()
     if (numUVshells == 1) {
         if (verbose) {
             MGlobal::displayInfo("No multiple shells are found.");
+
         }
     } else {
         if (verbose) {
@@ -615,35 +623,26 @@ MStatus FindUvOverlaps::redoIt()
             MString r = "Result : " + timeStr + " seconds.";
             MGlobal::displayInfo(r);
         }
-    }
-
-    // setup and return result
-    MStringArray resultStrArray;
-    for (unsigned int i = 0; i < innerIntersectionsResult.length(); i++) {
-        MString index;
-        index.set(innerIntersectionsResult[i]);
-        MString n = fullPath + ".f[" + index + "]";
-        resultStrArray.append(n);
-    }
-
-    if (isMultiThreaded) {
-        for (unsigned int i = 0; i < shellIntersectionsResult.length(); i++) {
-            MString index;
-            index.set(shellIntersectionsResult[i]);
-            MString n = fullPath + ".f[" + index + "]";
-            resultStrArray.append(n);
-        }
-    }
-    else {
-        MString index;
-        for (int x=0; x<numFaces; x++) {
-            if (resultBoolVector[x] == true) {
-                index.set(x);
+        if (isMultiThreaded) {
+            for (unsigned int i = 0; i < shellIntersectionsResult.length(); i++) {
+                MString index;
+                index.set(shellIntersectionsResult[i]);
                 MString n = fullPath + ".f[" + index + "]";
                 resultStrArray.append(n);
             }
         }
+        else {
+            MString index;
+            for (int x=0; x<numFaces; x++) {
+                if (resultBoolVector[x] == true) {
+                    index.set(x);
+                    MString n = fullPath + ".f[" + index + "]";
+                    resultStrArray.append(n);
+                }
+            }
+        }
     }
+
     MPxCommand::setResult(resultStrArray);
     
     if (verbose) {
