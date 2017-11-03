@@ -333,12 +333,12 @@ MThreadRetVal FindUvOverlaps::findShellIntersectionsMT(void* data)
 }
 
 MStatus FindUvOverlaps::findShellIntersectionsST(UVShell& shellA,
-                                                 UVShell& shellB,
-                                                 std::unordered_map<int, std::vector<int> >& uvMap,
-                                                 std::vector<bool>& resultBoolVector)
+    UVShell& shellB,
+    std::unordered_map<int, std::vector<int>>& uvMap,
+    std::vector<bool>& resultBoolVector)
 {
     std::vector<int>& borderUVs = shellA.borderUvPoints;
-    for (int i=0; i<borderUVs.size(); i++) {
+    for (int i = 0; i < borderUVs.size(); i++) {
         float u, v;
         fnMesh.getUV(borderUVs[i], u, v);
 
@@ -498,7 +498,6 @@ MStatus FindUvOverlaps::redoIt()
     if (numUVshells == 1) {
         if (verbose) {
             MGlobal::displayInfo("No multiple shells are found.");
-
         }
     } else {
         if (verbose) {
@@ -602,18 +601,16 @@ MStatus FindUvOverlaps::redoIt()
                     CHECK_MSTATUS_AND_RETURN_IT(status);
                     status = createShellTaskData(shellB, shellA, uvMap);
                     CHECK_MSTATUS_AND_RETURN_IT(status);
-                }
-                else {
+                } else {
                     status = findShellIntersectionsST(shellA, shellB, uvMap, resultBoolVector);
                     CHECK_MSTATUS_AND_RETURN_IT(status);
                     status = findShellIntersectionsST(shellB, shellA, uvMap, resultBoolVector);
                     CHECK_MSTATUS_AND_RETURN_IT(status);
                 }
-            }
-            else {
+            } else {
             }
         }
-        
+
         timer.endTimer();
         if (verbose) {
             timerResult2 = timer.elapsedTime();
@@ -630,10 +627,9 @@ MStatus FindUvOverlaps::redoIt()
                 MString n = fullPath + ".f[" + index + "]";
                 resultStrArray.append(n);
             }
-        }
-        else {
+        } else {
             MString index;
-            for (int x=0; x<numFaces; x++) {
+            for (int x = 0; x < numFaces; x++) {
                 if (resultBoolVector[x] == true) {
                     index.set(x);
                     MString n = fullPath + ".f[" + index + "]";
@@ -644,7 +640,7 @@ MStatus FindUvOverlaps::redoIt()
     }
 
     MPxCommand::setResult(resultStrArray);
-    
+
     if (verbose) {
         double resultTotal = timerResult1 + timerResult2;
         MString resultTotalStr;

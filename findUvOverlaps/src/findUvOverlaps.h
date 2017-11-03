@@ -2,17 +2,17 @@
 #define __FINDUVOVERLAPS_H__
 
 #include <maya/MDagPath.h>
+#include <maya/MFloatArray.h>
 #include <maya/MFnMesh.h>
 #include <maya/MIntArray.h>
-#include <maya/MFloatArray.h>
-#include <maya/MStringArray.h>
 #include <maya/MPxCommand.h>
 #include <maya/MString.h>
+#include <maya/MStringArray.h>
 #include <maya/MSyntax.h>
 #include <maya/MThreadPool.h>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <unordered_map>
 
 typedef struct _uvPointData {
     float u;
@@ -47,11 +47,15 @@ public:
 
     bool checkShellIntersection(UVShell& s1, UVShell& s2);
     MStatus createTaskData(int numPolygons);
-    MStatus createShellTaskData(UVShell& shellA, UVShell& shellB, std::unordered_map<int, std::vector<int> >& uvMap);
-    MStatus findShellIntersectionsST(UVShell&shellA,
-                                     UVShell& shellB,
-                                     std::unordered_map<int, std::vector<int> >& uvMap,
-                                     std::vector<bool>& resultBoolVector);
+    MStatus createShellTaskData(
+        UVShell& shellA,
+        UVShell& shellB,
+        std::unordered_map<int,
+        std::vector<int>>& uvMap);
+    MStatus findShellIntersectionsST(UVShell& shellA,
+        UVShell& shellB,
+        std::unordered_map<int, std::vector<int>>& uvMap,
+        std::vector<bool>& resultBoolVector);
 
     static bool checkCrossingNumber(float& u, float& v, std::vector<int>& uvIds);
     static void createThreadData(void* data, MThreadRootTask* root);
