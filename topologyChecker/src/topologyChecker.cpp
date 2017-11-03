@@ -15,6 +15,9 @@
 #include <maya/MSelectionList.h>
 #include <maya/MString.h>
 #include <maya/MSyntax.h>
+#include <maya/MUintArray.h>
+#include <maya/MDoubleArray.h>
+
 #include <set>
 #include <sstream>
 #include <time.h>
@@ -117,6 +120,26 @@ MStatus TopologyChecker::findMeshBorderEdges(MIntArray& indexArray)
     }
     return MS::kSuccess;
 }
+
+MStatus TopologyChecker::findCreaseEDges(MIntArray& indexArray)
+{
+    MStatus status;
+    MFnMesh fnMesh(mDagPath);
+    MUintArray edgeIds;
+    MDoubleArray creaseData;
+    fnMesh.getCreaseEdges(edgeIds, creaseData);
+
+    if (edgeIds.length() != 0) {
+        for (unsigned int i=0; i<edgeIds.length(); i++) {
+            if (creaseData[i] == 0)
+                continue;
+            int edgeId = (int)edgeIds[i];
+            indexArray.append(edgeId);
+        }
+    }
+    return MS::kSuccess;
+}
+
 MStringArray TopologyChecker::setResultString(MIntArray& indexArray, std::string componentType)
 {
     MString fullpath = mDagPath.fullPathName();
@@ -218,6 +241,11 @@ MStatus TopologyChecker::doIt(const MArgList& args)
         break;
     case TopologyChecker::MESH_BORDER:
         status = findMeshBorderEdges(indexArray);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        resultArray = setResultString(indexArray, "edge");
+        break;
+    case TopologyChecker::CREASE_EDGE:
+        status = findCreaseEDges(indexArray);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         resultArray = setResultString(indexArray, "edge");
         break;

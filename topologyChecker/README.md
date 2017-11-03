@@ -8,6 +8,7 @@
 4. bi-valent faces
 5. zero area faces
 6. mesh border edges
+7. crease edges
 
 
 ```python

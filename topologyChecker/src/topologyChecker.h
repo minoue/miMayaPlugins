@@ -29,6 +29,7 @@ public:
     MStatus findZeroAreaFaces(MIntArray& indexArray,
         double& faceAreaMax);
     MStatus findMeshBorderEdges(MIntArray& indexArray);
+    MStatus findCreaseEDges(MIntArray& indexArray);
     MStringArray setResultString(MIntArray& indexArray,
         std::string componentType);
 
@@ -40,6 +41,7 @@ public:
         BI_VALENT_FACES,
         ZERO_AREA_FACES,
         MESH_BORDER,
+        CREASE_EDGE,
         TEST
     };
 
