@@ -4,6 +4,10 @@ project(findUvOverlaps)
 set(SOURCE_FILES
         src/findUvOverlaps.cpp
         src/findUvOverlaps.h
+        src/uvPoint.h
+        src/uvPoint.cpp
+        src/uvShell.h
+        src/uvShell.cpp
         src/pluginMain.cpp
         )
 

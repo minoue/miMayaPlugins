@@ -1,6 +1,8 @@
 #ifndef __FINDUVOVERLAPS_H__
 #define __FINDUVOVERLAPS_H__
 
+#include "uvPoint.h"
+#include "uvShell.h"
 #include <maya/MDagPath.h>
 #include <maya/MFloatArray.h>
 #include <maya/MFnMesh.h>
@@ -14,26 +16,6 @@
 #include <unordered_set>
 #include <vector>
 
-typedef struct _uvPointData {
-    float u;
-    float v;
-    int index;
-    int shellIndex;
-} UVPoint;
-
-typedef struct _uvShellDataTag {
-    std::vector<UVPoint> uvPoints;
-    std::vector<float> uVector;
-    std::vector<float> vVector;
-    std::unordered_set<int> polygonIDs;
-    std::vector<int> borderUvPoints;
-    int shellIndex;
-    float uMax;
-    float uMin;
-    float vMax;
-    float vMin;
-} UVShell;
-
 class FindUvOverlaps : public MPxCommand {
 public:
     FindUvOverlaps();
@@ -45,15 +27,15 @@ public:
     static void* creater();
     static MSyntax newSyntax();
 
-    bool checkShellIntersection(UVShell& s1, UVShell& s2);
+    bool checkShellIntersection(UvShell& s1, UvShell& s2);
     MStatus createTaskData(int numPolygons);
     MStatus createShellTaskData(
-        UVShell& shellA,
-        UVShell& shellB,
+        UvShell& shellA,
+        UvShell& shellB,
         std::unordered_map<int,
-        std::vector<int>>& uvMap);
-    MStatus findShellIntersectionsST(UVShell& shellA,
-        UVShell& shellB,
+            std::vector<int>>& uvMap);
+    MStatus findShellIntersectionsST(UvShell& shellA,
+        UvShell& shellB,
         std::unordered_map<int, std::vector<int>>& uvMap,
         std::vector<bool>& resultBoolVector);
 

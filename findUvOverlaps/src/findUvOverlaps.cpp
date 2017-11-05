@@ -24,8 +24,8 @@ struct taskDataTag {
 };
 
 struct shellTaskDataTag {
-    UVShell* shellA;
-    UVShell* shellB;
+    UvShell* shellA;
+    UvShell* shellB;
     std::unordered_map<int, std::vector<int>>* uvMap;
     std::unordered_set<int> resultIndexSet;
 };
@@ -83,7 +83,7 @@ float FindUvOverlaps::getTriangleArea(float& Ax, float& Ay, float& Bx, float& By
     return area;
 }
 
-bool FindUvOverlaps::checkShellIntersection(UVShell& s1, UVShell& s2)
+bool FindUvOverlaps::checkShellIntersection(UvShell& s1, UvShell& s2)
 {
     bool uIntersection = true;
     bool vIntersection = true;
@@ -161,8 +161,8 @@ bool FindUvOverlaps::checkCrossingNumber(float& u, float& v, std::vector<int>& u
     }
 }
 
-MStatus FindUvOverlaps::createShellTaskData(UVShell& shellA,
-    UVShell& shellB,
+MStatus FindUvOverlaps::createShellTaskData(UvShell& shellA,
+    UvShell& shellB,
     std::unordered_map<int, std::vector<int>>& uvMap)
 {
     MStatus stat = MThreadPool::init();
@@ -332,8 +332,8 @@ MThreadRetVal FindUvOverlaps::findShellIntersectionsMT(void* data)
     return (MThreadRetVal)0;
 }
 
-MStatus FindUvOverlaps::findShellIntersectionsST(UVShell& shellA,
-    UVShell& shellB,
+MStatus FindUvOverlaps::findShellIntersectionsST(UvShell& shellA,
+    UvShell& shellB,
     std::unordered_map<int, std::vector<int>>& uvMap,
     std::vector<bool>& resultBoolVector)
 {
@@ -380,7 +380,7 @@ MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
         }
 
         for (int triId = 0; triId < numTriangles; triId++) {
-            UVPoint uvPointArray[3];
+            UvPoint uvPointArray[3];
             fnMesh.getPolygonTriangleVertices(faceId, triId, vertexList);
             float u;
             float v;
@@ -507,10 +507,10 @@ MStatus FindUvOverlaps::redoIt()
         timer.beginTimer();
 
         // Setup uv shell objects
-        std::vector<UVShell> uvShellArray;
+        std::vector<UvShell> uvShellArray;
         uvShellArray.resize(numUVshells);
         for (unsigned int i = 0; i < numUVshells; i++) {
-            UVShell shell;
+            UvShell shell;
             uvShellArray[i] = shell;
         }
 
@@ -560,7 +560,7 @@ MStatus FindUvOverlaps::redoIt()
         }
 
         for (int i = 0; i < numUVs; i++) {
-            UVPoint p;
+            UvPoint p;
             p.u = uArray[i];
             p.v = vArray[i];
             p.index = i;
@@ -572,7 +572,7 @@ MStatus FindUvOverlaps::redoIt()
 
         // Get min and max for each bounding box
         for (unsigned int i = 0; i < numUVshells; i++) {
-            UVShell& shell = uvShellArray[i];
+            UvShell& shell = uvShellArray[i];
             shell.uMax = *std::max_element(shell.uVector.begin(), shell.uVector.end());
             shell.uMin = *std::min_element(shell.uVector.begin(), shell.uVector.end());
             shell.vMax = *std::max_element(shell.vVector.begin(), shell.vVector.end());
@@ -590,8 +590,8 @@ MStatus FindUvOverlaps::redoIt()
         for (int i = 0; i < shellCombVec.size(); i++) {
             int& shellIndexA = shellCombVec[i][0];
             int& shellIndexB = shellCombVec[i][1];
-            UVShell& shellA = uvShellArray[shellIndexA];
-            UVShell& shellB = uvShellArray[shellIndexB];
+            UvShell& shellA = uvShellArray[shellIndexA];
+            UvShell& shellB = uvShellArray[shellIndexB];
 
             bool isIntersected = checkShellIntersection(shellA, shellB);
 
