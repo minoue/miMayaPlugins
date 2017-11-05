@@ -1,6 +1,4 @@
 #include "uvChecker.h"
-#include "uvPoint.h"
-#include <map>
 #include <math.h>
 #include <maya/MArgDatabase.h>
 #include <maya/MArgList.h>
@@ -8,7 +6,6 @@
 #include <maya/MGlobal.h>
 #include <maya/MIntArray.h>
 #include <maya/MItMeshPolygon.h>
-#include <maya/MPointArray.h>
 #include <maya/MSelectionList.h>
 #include <maya/MStringArray.h>
 #include <set>
@@ -83,13 +80,6 @@ MStatus UvChecker::redoIt()
     MStatus status;
 
     switch (checkNumber) {
-    case UvChecker::OVERLAPS:
-        if (verbose == true) {
-            MGlobal::displayInfo("Checking overlaps");
-        }
-        status = findOverlaps();
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-        break;
     case UvChecker::UDIM:
         if (verbose == true) {
             MGlobal::displayInfo("Checking UDIM borders");
@@ -133,68 +123,6 @@ bool UvChecker::isUndoable() const
 void* UvChecker::creater()
 {
     return new UvChecker;
-}
-
-MStatus UvChecker::findOverlaps()
-{
-    MStatus status;
-
-    MItMeshPolygon itPoly(mDagPath);
-    MStringArray resultArray;
-
-    int numTriangles;
-    int numVertices;
-    MIntArray vtxArray;
-    std::map<int, int> vtxMap;
-
-    for (; !itPoly.isDone(); itPoly.next()) {
-        itPoly.numTriangles(numTriangles);
-        itPoly.getVertices(vtxArray);
-
-        numVertices = vtxArray.length();
-        for (int i = 0; i < numVertices; i++) {
-            vtxMap[vtxArray[i]] = i;
-        }
-
-        MPointArray pointArray;
-        MIntArray intArray;
-
-        for (int i = 0; i < numTriangles; i++) {
-            // Each triangles
-            UVPoint uvPointArray[3];
-
-            itPoly.getTriangle(i, pointArray, intArray);
-            float u;
-            float v;
-            int uvId;
-            for (unsigned int n = 0; n < intArray.length(); n++) {
-                int localIndex = vtxMap[intArray[n]];
-                itPoly.getUVIndex(localIndex, uvId, u, v);
-                UVPoint point(u, v);
-                uvPointArray[n] = point;
-            }
-
-            float& Ax = uvPointArray[0].u;
-            float& Ay = uvPointArray[0].v;
-            float& Bx = uvPointArray[1].u;
-            float& By = uvPointArray[1].v;
-            float& Cx = uvPointArray[2].u;
-            float& Cy = uvPointArray[2].v;
-
-            float area = ((Ax * (By - Cy)) + (Bx * (Cy - Ay)) + (Cx * (Ay - By))) / 2;
-
-            if (area < 0) {
-                MString index;
-                index.set(itPoly.index());
-                MString s = mDagPath.fullPathName() + ".f[" + index + "]";
-                resultArray.append(s);
-            }
-        }
-        vtxMap.clear();
-    }
-    MPxCommand::setResult(resultArray);
-
-    return MS::kSuccess;
 }
 
 MStatus UvChecker::findUdimIntersections()

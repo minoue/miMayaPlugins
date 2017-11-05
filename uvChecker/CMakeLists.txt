@@ -5,10 +5,6 @@ set(SOURCE_FILES
         src/pluginMain.cpp
         src/uvChecker.cpp
         src/uvChecker.h
-        src/uvPoint.h
-        src/uvPoint.cpp
-        src/uvEdge.h
-        src/uvEdge.cpp
         )
 
 # https://www.guyrutenberg.com/2014/01/05/enabling-c11-c0x-in-cmake/
