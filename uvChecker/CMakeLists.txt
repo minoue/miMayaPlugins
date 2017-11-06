@@ -5,6 +5,12 @@ set(SOURCE_FILES
         src/pluginMain.cpp
         src/uvChecker.cpp
         src/uvChecker.h
+        src/uvPoint.cpp
+        src/uvPoint.h
+        src/uvShell.cpp
+        src/uvShell.h
+        src/findUvOverlaps.cpp
+        src/findUvOverlaps.h
         )
 
 # https://www.guyrutenberg.com/2014/01/05/enabling-c11-c0x-in-cmake/
