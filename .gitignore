@@ -5,6 +5,7 @@ tags
 *.pyc
 *.attr
 *.DS_Store
+.clang_complete
 tags
 ctags
 build/
