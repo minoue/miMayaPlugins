@@ -19,6 +19,7 @@ MFloatArray FindUvOverlaps::vArray;
 struct taskDataTag {
     int start;
     int end;
+    MString uvSet;
     MIntArray innerIntersections;
     int* boolArray;
 };
@@ -26,6 +27,7 @@ struct taskDataTag {
 struct shellTaskDataTag {
     UvShell* shellA;
     UvShell* shellB;
+    MString uvSet;
     std::unordered_map<int, std::vector<int>>* uvMap;
     std::unordered_set<int> resultIndexSet;
 };
@@ -57,6 +59,7 @@ MSyntax FindUvOverlaps::newSyntax()
     syntax.addArg(MSyntax::kString);
     syntax.addFlag("-v", "-verbose", MSyntax::kBoolean);
     syntax.addFlag("-mt", "-multiThread", MSyntax::kBoolean);
+    syntax.addFlag("-uv", "-uvSet", MSyntax::kString);
     return syntax;
 }
 
@@ -163,6 +166,7 @@ bool FindUvOverlaps::checkCrossingNumber(float& u, float& v, std::vector<int>& u
 
 MStatus FindUvOverlaps::createShellTaskData(UvShell& shellA,
     UvShell& shellB,
+    MString& uvSet,
     std::unordered_map<int, std::vector<int>>& uvMap)
 {
     MStatus stat = MThreadPool::init();
@@ -175,6 +179,7 @@ MStatus FindUvOverlaps::createShellTaskData(UvShell& shellA,
     shellTaskDataTag shellTaskData;
     shellTaskData.shellA = &shellA;
     shellTaskData.shellB = &shellB;
+    shellTaskData.uvSet = uvSet;
     shellTaskData.uvMap = &uvMap;
 
     MThreadPool::newParallelRegion(createShellThreadData, (void*)&shellTaskData);
@@ -189,7 +194,7 @@ MStatus FindUvOverlaps::createShellTaskData(UvShell& shellA,
     return MS::kSuccess;
 }
 
-MStatus FindUvOverlaps::createTaskData(int numPolygons)
+MStatus FindUvOverlaps::createTaskData(int numPolygons, MString& uvSet)
 {
     MStatus stat = MThreadPool::init();
     if (MStatus::kSuccess != stat) {
@@ -201,6 +206,7 @@ MStatus FindUvOverlaps::createTaskData(int numPolygons)
     taskDataTag taskData;
     taskData.start = 0;
     taskData.end = numPolygons - 1;
+    taskData.uvSet = uvSet;
     taskData.boolArray = new int[numPolygons]();
     MThreadPool::newParallelRegion(createThreadData, (void*)&taskData);
 
@@ -300,9 +306,10 @@ MThreadRetVal FindUvOverlaps::findShellIntersectionsMT(void* data)
     std::vector<int>& borderUVs = threadData->shellTaskData->shellA->borderUvPoints;
     float u, v;
     MFnMesh fnMesh(mDagPath);
+    MString* uvSetPtr = &(threadData->shellTaskData->uvSet);
 
     for (int i = threadData->start; i < threadData->end; i++) {
-        fnMesh.getUV(borderUVs[i], u, v);
+        fnMesh.getUV(borderUVs[i], u, v, uvSetPtr);
 
         float& uMin = threadData->shellTaskData->shellB->uMin;
         float& uMax = threadData->shellTaskData->shellB->uMax;
@@ -334,13 +341,14 @@ MThreadRetVal FindUvOverlaps::findShellIntersectionsMT(void* data)
 
 MStatus FindUvOverlaps::findShellIntersectionsST(UvShell& shellA,
     UvShell& shellB,
+    MString* uvSetPtr,
     std::unordered_map<int, std::vector<int>>& uvMap,
     std::vector<bool>& resultBoolVector)
 {
     std::vector<int>& borderUVs = shellA.borderUvPoints;
     for (int i = 0; i < borderUVs.size(); i++) {
         float u, v;
-        fnMesh.getUV(borderUVs[i], u, v);
+        fnMesh.getUV(borderUVs[i], u, v, uvSetPtr);
 
         if (u < shellB.uMin || u > shellB.uMax) {
             continue;
@@ -367,6 +375,8 @@ MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
 
     MFnMesh fnMesh(mDagPath);
 
+    MString* uvSetPtr = &(threadData->taskData->uvSet);
+
     int vertexList[3];
     MIntArray vertexIdArray;
     std::unordered_map<int, int> localVtxIdMap;
@@ -386,7 +396,7 @@ MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
             float v;
             for (int vtx = 0; vtx < 3; vtx++) {
                 int localIndex = localVtxIdMap[vertexList[vtx]];
-                fnMesh.getPolygonUV(faceId, localIndex, u, v);
+                fnMesh.getPolygonUV(faceId, localIndex, u, v, uvSetPtr);
                 uvPointArray[vtx].u = u;
                 uvPointArray[vtx].v = v;
             }
@@ -421,6 +431,9 @@ MStatus FindUvOverlaps::doIt(const MArgList& args)
         return MStatus::kFailure;
     }
 
+    sel.getDagPath(0, mDagPath);
+    fnMesh.setObject(mDagPath);
+
     if (argData.isFlagSet("-verbose"))
         argData.getFlagArgument("-verbose", 0, verbose);
     else
@@ -431,7 +444,10 @@ MStatus FindUvOverlaps::doIt(const MArgList& args)
     else
         isMultiThreaded = false;
 
-    sel.getDagPath(0, mDagPath);
+    if (argData.isFlagSet("-uvSet"))
+        argData.getFlagArgument("-uvSet", 0, uvSet);
+    else
+        fnMesh.getCurrentUVSetName(uvSet);
 
     if (verbose == true) {
         MString objectPath = "Selected mesh : " + mDagPath.fullPathName();
@@ -459,9 +475,8 @@ MStatus FindUvOverlaps::redoIt()
     double timerResult2;
 
     // Get basic mesh information
-    fnMesh.setObject(mDagPath);
     int numFaces = fnMesh.numPolygons();
-    int numUVs = fnMesh.numUVs();
+    int numUVs = fnMesh.numUVs(uvSet);
     int numVerts = fnMesh.numVertices();
     MString fullPath = mDagPath.fullPathName();
 
@@ -471,7 +486,7 @@ MStatus FindUvOverlaps::redoIt()
     }
 
     timer.beginTimer();
-    status = createTaskData(numFaces);
+    status = createTaskData(numFaces, uvSet);
     timer.endTimer();
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
@@ -492,9 +507,21 @@ MStatus FindUvOverlaps::redoIt()
         MGlobal::displayInfo(r);
     }
 
+    // getUvShellsIds function gives wrong number of uv shells when accessing
+    // to non-current uvSets. So just trying to switch uvSets here 
+    MString currentUvSet = fnMesh.currentUVSetName();
+    if (uvSet == currentUvSet) {
+    }
+    else {
+        fnMesh.setCurrentUVSetName(uvSet);
+    }
+
+    // Get UV shell info
     MIntArray uvShellIds;
     unsigned int numUVshells;
-    fnMesh.getUvShellsIds(uvShellIds, numUVshells);
+    status = fnMesh.getUvShellsIds(uvShellIds, numUVshells, &uvSet);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+
     if (numUVshells == 1) {
         if (verbose) {
             MGlobal::displayInfo("No multiple shells are found.");
@@ -519,8 +546,8 @@ MStatus FindUvOverlaps::redoIt()
         MIntArray connectedFacesArray;
         int numUniUv;
         for (MItMeshVertex itVerts(mDagPath); !itVerts.isDone(); itVerts.next()) {
-            itVerts.numUVs(numUniUv);
-            itVerts.getUVIndices(uvIndexArray);
+            itVerts.numUVs(numUniUv, &uvSet);
+            itVerts.getUVIndices(uvIndexArray, &uvSet);
             if (numUniUv == 1) {
                 // If current vertex has only 1 UV point, its UV is inside of a UV shell
                 // Get and insert polygon IDs to the shell
@@ -542,11 +569,12 @@ MStatus FindUvOverlaps::redoIt()
         }
 
         // Get UV values
-        fnMesh.getUVs(uArray, vArray);
+        status = fnMesh.getUVs(uArray, vArray, &uvSet);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
 
         MIntArray uvCounts;
         MIntArray uvIds;
-        fnMesh.getAssignedUVs(uvCounts, uvIds);
+        fnMesh.getAssignedUVs(uvCounts, uvIds, &uvSet);
         std::unordered_map<int, std::vector<int>> uvMap;
         int counter = 0;
         for (unsigned int i = 0; i < uvCounts.length(); i++) {
@@ -597,14 +625,14 @@ MStatus FindUvOverlaps::redoIt()
 
             if (isIntersected == true) {
                 if (isMultiThreaded) {
-                    status = createShellTaskData(shellA, shellB, uvMap);
+                    status = createShellTaskData(shellA, shellB, uvSet, uvMap);
                     CHECK_MSTATUS_AND_RETURN_IT(status);
-                    status = createShellTaskData(shellB, shellA, uvMap);
+                    status = createShellTaskData(shellB, shellA, uvSet, uvMap);
                     CHECK_MSTATUS_AND_RETURN_IT(status);
                 } else {
-                    status = findShellIntersectionsST(shellA, shellB, uvMap, resultBoolVector);
+                    status = findShellIntersectionsST(shellA, shellB, &uvSet, uvMap, resultBoolVector);
                     CHECK_MSTATUS_AND_RETURN_IT(status);
-                    status = findShellIntersectionsST(shellB, shellA, uvMap, resultBoolVector);
+                    status = findShellIntersectionsST(shellB, shellA, &uvSet, uvMap, resultBoolVector);
                     CHECK_MSTATUS_AND_RETURN_IT(status);
                 }
             } else {
@@ -638,6 +666,9 @@ MStatus FindUvOverlaps::redoIt()
             }
         }
     }
+
+    // Switch back to the initial uv set
+    fnMesh.setCurrentUVSetName(currentUvSet);
 
     MPxCommand::setResult(resultStrArray);
 

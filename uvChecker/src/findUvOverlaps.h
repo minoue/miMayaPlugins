@@ -28,14 +28,17 @@ public:
     static MSyntax newSyntax();
 
     bool checkShellIntersection(UvShell& s1, UvShell& s2);
-    MStatus createTaskData(int numPolygons);
+    MStatus createTaskData(int numPolygons, MString& uvSet);
     MStatus createShellTaskData(
         UvShell& shellA,
         UvShell& shellB,
+        MString& uvSet,
         std::unordered_map<int,
-            std::vector<int>>& uvMap);
-    MStatus findShellIntersectionsST(UvShell& shellA,
+        std::vector<int>>& uvMap);
+    MStatus findShellIntersectionsST(
+        UvShell& shellA,
         UvShell& shellB,
+        MString* uvSetPtr,
         std::unordered_map<int, std::vector<int>>& uvMap,
         std::vector<bool>& resultBoolVector);
 
@@ -52,6 +55,7 @@ private:
     MFnMesh fnMesh;
     bool verbose;
     bool isMultiThreaded;
+    MString uvSet;
     static MDagPath mDagPath;
     static MFloatArray uArray;
     static MFloatArray vArray;
