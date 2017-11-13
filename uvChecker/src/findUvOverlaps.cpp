@@ -588,11 +588,7 @@ MStatus FindUvOverlaps::redoIt()
         }
 
         for (int i = 0; i < numUVs; i++) {
-            UvPoint p;
-            p.u = uArray[i];
-            p.v = vArray[i];
-            p.index = i;
-            p.shellIndex = uvShellIds[i];
+            UvPoint p(uArray[i], vArray[i], i, uvShellIds[i]);
             uvShellArray[uvShellIds[i]].uvPoints.push_back(p);
             uvShellArray[uvShellIds[i]].uVector.push_back(uArray[i]);
             uvShellArray[uvShellIds[i]].vVector.push_back(vArray[i]);
