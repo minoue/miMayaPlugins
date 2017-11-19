@@ -371,6 +371,7 @@ MStatus FindUvOverlaps::findShellIntersectionsST(UvShell& shellA,
 
 MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
 {
+    MStatus status;
     threadDataTag* threadData = (threadDataTag*)data;
 
     MFnMesh fnMesh(mDagPath);
@@ -396,7 +397,9 @@ MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
             float v;
             for (int vtx = 0; vtx < 3; vtx++) {
                 int localIndex = localVtxIdMap[vertexList[vtx]];
-                fnMesh.getPolygonUV(faceId, localIndex, u, v, uvSetPtr);
+                status = fnMesh.getPolygonUV(faceId, localIndex, u, v, uvSetPtr);
+                if (status == MS::kFailure)
+                    goto LABEL_1;
                 uvPointArray[vtx].u = u;
                 uvPointArray[vtx].v = v;
             }
@@ -413,6 +416,8 @@ MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
                 threadData->taskData->boolArray[faceId] = 1;
             }
         }
+        LABEL_1:
+        ;
     }
     return (MThreadRetVal)0;
 }
@@ -545,25 +550,40 @@ MStatus FindUvOverlaps::redoIt()
         MIntArray uvIndexArray;
         MIntArray connectedFacesArray;
         int numUniUv;
+
         for (MItMeshVertex itVerts(mDagPath); !itVerts.isDone(); itVerts.next()) {
             itVerts.numUVs(numUniUv, &uvSet);
+            if (numUniUv == 0) {
+                // If number of unique UV is zero, this vertex doesn't have
+                // assgined UV
+                continue;
+            }
+
             itVerts.getUVIndices(uvIndexArray, &uvSet);
-            if (numUniUv == 1) {
-                // If current vertex has only 1 UV point, its UV is inside of a UV shell
-                // Get and insert polygon IDs to the shell
-                int thisIndex = uvIndexArray[0];
-                int shellNumber = uvShellIds[thisIndex];
-                itVerts.getConnectedFaces(connectedFacesArray);
-                for (unsigned int f = 0; f < connectedFacesArray.length(); f++) {
-                    int connectedFaceID = connectedFacesArray[f];
-                    uvShellArray[shellNumber].polygonIDs.insert(connectedFaceID);
+
+            for (int i2=0; i2<uvIndexArray.length(); i2++) {
+                int uvIndex = uvIndexArray[i2];
+                int shellNumber = uvShellIds[uvIndex];
+                if (uvIndex == -1) {
+                    // If it's -1, that means this vertex is connected to a face
+                    // which doesn't have assigned UV
+                    MGlobal::displayInfo("-1 found");
+                    break;
                 }
-            } else {
-                // If current vertex has multiple UV points, its UVs are on a shell border
-                for (unsigned int uvi = 0; uvi < uvIndexArray.length(); uvi++) {
-                    int uvIndex = uvIndexArray[uvi];
-                    int shellNumber = uvShellIds[uvIndex];
-                    uvShellArray[shellNumber].borderUvPoints.push_back(uvIndex);
+                else {
+                    if (numUniUv == 1) {
+                        // If current vertex has only 1 UV point, its UV is inside of a UV shell
+                        // Get and insert polygon IDs to the shell
+                        itVerts.getConnectedFaces(connectedFacesArray);
+                        for (unsigned int f = 0; f < connectedFacesArray.length(); f++) {
+                            int connectedFaceID = connectedFacesArray[f];
+                            uvShellArray[shellNumber].polygonIDs.insert(connectedFaceID);
+                        }
+                    }
+                    else {
+                        // If current vertex has multiple UV points, its UVs are on a shell border
+                        uvShellArray[shellNumber].borderUvPoints.push_back(uvIndex);
+                    }
                 }
             }
         }
@@ -593,7 +613,7 @@ MStatus FindUvOverlaps::redoIt()
             uvShellArray[uvShellIds[i]].uVector.push_back(uArray[i]);
             uvShellArray[uvShellIds[i]].vVector.push_back(vArray[i]);
         }
-
+        //
         // Get min and max for each bounding box
         for (unsigned int i = 0; i < numUVshells; i++) {
             UvShell& shell = uvShellArray[i];
@@ -616,9 +636,9 @@ MStatus FindUvOverlaps::redoIt()
             int& shellIndexB = shellCombVec[i][1];
             UvShell& shellA = uvShellArray[shellIndexA];
             UvShell& shellB = uvShellArray[shellIndexB];
-
+        
             bool isIntersected = checkShellIntersection(shellA, shellB);
-
+        
             if (isIntersected == true) {
                 if (isMultiThreaded) {
                     status = createShellTaskData(shellA, shellB, uvSet, uvMap);
