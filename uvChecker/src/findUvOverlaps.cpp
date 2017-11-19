@@ -399,7 +399,7 @@ MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
                 int localIndex = localVtxIdMap[vertexList[vtx]];
                 status = fnMesh.getPolygonUV(faceId, localIndex, u, v, uvSetPtr);
                 if (status == MS::kFailure)
-                    goto LABEL_1;
+                    goto NEXT_FACE;
                 uvPointArray[vtx].u = u;
                 uvPointArray[vtx].v = v;
             }
@@ -416,7 +416,7 @@ MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
                 threadData->taskData->boolArray[faceId] = 1;
             }
         }
-        LABEL_1:
+        NEXT_FACE:
         ;
     }
     return (MThreadRetVal)0;
@@ -567,7 +567,6 @@ MStatus FindUvOverlaps::redoIt()
                 if (uvIndex == -1) {
                     // If it's -1, that means this vertex is connected to a face
                     // which doesn't have assigned UV
-                    MGlobal::displayInfo("-1 found");
                     break;
                 }
                 else {
@@ -613,7 +612,7 @@ MStatus FindUvOverlaps::redoIt()
             uvShellArray[uvShellIds[i]].uVector.push_back(uArray[i]);
             uvShellArray[uvShellIds[i]].vVector.push_back(vArray[i]);
         }
-        //
+
         // Get min and max for each bounding box
         for (unsigned int i = 0; i < numUVshells; i++) {
             UvShell& shell = uvShellArray[i];
