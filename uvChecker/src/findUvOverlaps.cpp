@@ -563,13 +563,13 @@ MStatus FindUvOverlaps::redoIt()
 
             for (int i2=0; i2<uvIndexArray.length(); i2++) {
                 int uvIndex = uvIndexArray[i2];
-                int shellNumber = uvShellIds[uvIndex];
                 if (uvIndex == -1) {
                     // If it's -1, that means this vertex is connected to a face
                     // which doesn't have assigned UV
-                    break;
+                    continue;
                 }
                 else {
+                    int shellNumber = uvShellIds[uvIndex];
                     if (numUniUv == 1) {
                         // If current vertex has only 1 UV point, its UV is inside of a UV shell
                         // Get and insert polygon IDs to the shell
