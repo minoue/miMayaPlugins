@@ -236,7 +236,7 @@ class UvShell(object):
     def __init__(self):
         self.uvPoints = []
         self.shellId = None
-        self.edges = []
+        self.edges = set()
 
         self.uMax = None
         self.vMax = None
@@ -330,7 +330,7 @@ def main():
             uvEdge = UvEdge(beginPt, endPt, edgeIndex)
 
             if uvEdge not in shells[currentShellIndex].edges:
-                shells[currentShellIndex].edges.append(uvEdge)
+                shells[currentShellIndex].edges.add(uvEdge)
 
     edgeSets = []
 
