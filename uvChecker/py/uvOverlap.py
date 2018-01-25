@@ -127,34 +127,34 @@ class UvPoint(object):
     def __gt__(self, other):
         if self.u == other.u and self.v == other.v:
             return False
-        elif self.u == other.u:
-            return self.v > other.v
-        else:
+        elif self.v == other.v:
             return self.u > other.u
+        else:
+            return self.v > other.v
 
     def __ge__(self, other):
         if self.u == other.u and self.v == other.v:
             return True
-        elif self.u == other.u:
-            return self.v > other.v
-        else:
+        elif self.v == other.v:
             return self.u > other.u
+        else:
+            return self.v > other.v
 
     def __lt__(self, other):
         if self.u == other.u and self.v == other.v:
             return False
-        elif self.u == other.u:
-            return self.v < other.v
-        else:
+        elif self.v == other.v:
             return self.u < other.u
+        else:
+            return self.v < other.v
 
     def __le__(self, other):
         if self.u == other.u and self.v == other.v:
             return True
-        elif self.u == other.u:
-            return self.v < other.v
-        else:
+        elif self.v == other.v:
             return self.u < other.u
+        else:
+            return self.v < other.v
 
     def __sub__(self, other):
         u = other.u - self.u
@@ -321,11 +321,11 @@ def main():
             p1 = UvPoint(u_current, v_current, uvIndexA)
             p2 = UvPoint(u_next, v_next, uvIndexB)
             if p1 > p2:
-                beginPt = p2
-                endPt = p1
-            else:
                 beginPt = p1
                 endPt = p2
+            else:
+                beginPt = p2
+                endPt = p1
 
             uvEdge = UvEdge(beginPt, endPt, edgeIndex)
 
@@ -382,6 +382,7 @@ def shellOverlapped(shellA, shellB):
 def bruteForceCheck(edges):
     result = []
     for i in itertools.combinations(edges, 2):
+        pass
         if i[0].isCrossing(i[1]) is True:
             idx1 = i[0].index
             idx2 = i[1].index
