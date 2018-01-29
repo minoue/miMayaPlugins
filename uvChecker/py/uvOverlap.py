@@ -6,8 +6,10 @@ currently very slow as this script checks using brute force
 
 from maya.api import OpenMaya
 from maya import cmds
+import bisect
 import time
 import itertools
+import numpy
 
 
 def getTriangleArea(x1, y1, x2, y2, x3, y3):
@@ -165,6 +167,8 @@ class UvPoint(object):
 
 class UvEdge(object):
 
+    scanline = 0
+
     def __init__(self, begin, end, index=None):
         self.begin = begin
         self.end = end
@@ -175,6 +179,71 @@ class UvEdge(object):
 
     def __ne__(self, other):
         return self.index != other.index
+
+    def __hash__(self):
+        return hash(self.index)
+
+    def __gt__(self, other):
+        thisIntersection = self.comparerator(UvEdge.scanline)
+        otherIntersection = other.comparerator(UvEdge.scanline)
+        if thisIntersection == otherIntersection:
+            self.end.u > other.end.u
+        else:
+            return thisIntersection > otherIntersection
+
+    def __ge__(self, other):
+        thisIntersection = self.comparerator(UvEdge.scanline)
+        otherIntersection = other.comparerator(UvEdge.scanline)
+        if thisIntersection == otherIntersection:
+            self.end.u >= other.end.u
+        else:
+            return thisIntersection > otherIntersection
+
+    def __lt__(self, other):
+        thisIntersection = self.comparerator(UvEdge.scanline)
+        otherIntersection = other.comparerator(UvEdge.scanline)
+        if thisIntersection == otherIntersection:
+            self.end.u < other.end.u
+        else:
+            return thisIntersection < otherIntersection
+
+    def __le__(self, other):
+        thisIntersection = self.comparerator(UvEdge.scanline)
+        otherIntersection = other.comparerator(UvEdge.scanline)
+        if thisIntersection == otherIntersection:
+            self.end.u <= other.end.u
+        else:
+            return thisIntersection < otherIntersection
+
+    def comparerator(self, scanline):
+        """ Return x value of crossing point
+
+        Args:
+            scanline(float): y value of sweepline
+
+        Return:
+            X (float): X value of cross point of sweepline and line segment
+
+        """
+
+        A = numpy.matrix(
+            [[self.begin.u, 1],
+             [self.end.u, 1]])
+
+        B = numpy.matrix(
+            [[self.begin.v],
+             [self.end.v]])
+
+        A_inv = numpy.linalg.inv(A)
+
+        result = A_inv * B
+
+        # line equation : y = ax + b
+        tangent = result[0, 0]
+        b_value = result[1, 0]
+
+        X = (scanline - b_value) / tangent
+        return X
 
     def isCrossing(self, other):
         area1 = getTriangleArea(
@@ -320,12 +389,13 @@ def main():
             u_next, v_next = mFnMesh.getPolygonUV(faceId, nextLocalIndex)
             p1 = UvPoint(u_current, v_current, uvIndexA)
             p2 = UvPoint(u_next, v_next, uvIndexB)
+
             if p1 > p2:
-                beginPt = p1
-                endPt = p2
-            else:
                 beginPt = p2
                 endPt = p1
+            else:
+                beginPt = p1
+                endPt = p2
 
             uvEdge = UvEdge(beginPt, endPt, edgeIndex)
 
@@ -334,6 +404,7 @@ def main():
 
     edgeSets = []
 
+    # If shell bounding boxes overlap, create one set of edges from two shells
     for i in itertools.combinations(shells, 2):
         if shellOverlapped(i[0], i[1]):
             edges = []
@@ -348,19 +419,59 @@ def main():
         else:
             pass
 
+    for s in shells:
+        edgeSets.append(s.edges)
+
     result = []
     for i in edgeSets:
-        r = bruteForceCheck(i)
-        result.extend(r)
-
-    for s in shells:
-        r = bruteForceCheck(s.edges)
+        r = check(i)
         result.extend(r)
 
     names = [mDagPath.fullPathName() + ".map[%s]" % i for i in result]
-
     if not len(names) == 0:
         cmds.select(names, r=True)
+
+
+def check(edges):
+
+    eventQueue = []
+    result = set()
+
+    # Setup event queue from edge list
+    eventIndex = 0
+    for e in edges:
+        ev1 = Event("begin", e.begin, e, eventIndex)
+        eventIndex += 1
+        ev2 = Event("end", e.end, e, eventIndex)
+        eventIndex += 1
+
+        bisect.insort_left(eventQueue, ev1)
+        bisect.insort_left(eventQueue, ev2)
+
+    status = []
+
+    while True:
+        if len(eventQueue) == 0:
+            break
+        currentEvent = eventQueue.pop(0)
+        edge = currentEvent.containedEdge
+
+        if currentEvent.status == "begin":
+            status.append(edge)
+            if len(status) == 1:
+                continue
+
+            for i in itertools.combinations(status, 2):
+                if i[0].isCrossing(i[1]) is True:
+                    for idx in i[0].index:
+                        result.add(idx)
+
+        elif currentEvent.status == "end":
+            status.remove(edge)
+        else:
+            pass
+
+    return list(result)
 
 
 def shellOverlapped(shellA, shellB):
@@ -382,7 +493,6 @@ def shellOverlapped(shellA, shellB):
 def bruteForceCheck(edges):
     result = []
     for i in itertools.combinations(edges, 2):
-        pass
         if i[0].isCrossing(i[1]) is True:
             idx1 = i[0].index
             idx2 = i[1].index
@@ -398,8 +508,8 @@ def bruteForceCheck(edges):
 
 def test():
     # Crossing points
-    p1 = UvPoint(0.15, 0.1, 0)
-    p2 = UvPoint(0.85, 0.5, 1)
+    p1 = UvPoint(1.0, 2.0, 0)
+    p2 = UvPoint(3.0, 3.0, 1)
     p3 = UvPoint(0.09, 0.9, 0)
     p4 = UvPoint(0.4, 0.55, 1)
 
@@ -425,6 +535,8 @@ def test():
 
     te = p9 - p12
     te2 = p10 - p12
+
+    print e1.comparerator(-3)
     # print te.dot(te2)
 
     # print e1.isCrossing(e2)
