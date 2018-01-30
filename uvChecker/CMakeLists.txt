@@ -11,6 +11,8 @@ set(SOURCE_FILES
         src/uvShell.h
         src/findUvOverlaps.cpp
         src/findUvOverlaps.h
+        src/findUvOverlaps2.cpp
+        src/findUvOverlaps2.h
         )
 
 # https://www.guyrutenberg.com/2014/01/05/enabling-c11-c0x-in-cmake/
