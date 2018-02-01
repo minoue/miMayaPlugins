@@ -20,6 +20,11 @@ public:
         return !(*this == rhs);
     }
 
+    bool operator>(const UvPoint& rhs) const;
+    bool operator>=(const UvPoint& rhs) const;
+    bool operator<(const UvPoint& rhs) const;
+    bool operator<=(const UvPoint& rhs) const;
+
 private:
 };
 
