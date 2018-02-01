@@ -21,7 +21,7 @@ public:
 private:
     bool verbose;
     MDagPath mDagPath;
-    MFnMesh fnMesh;
+    MFnMesh mFnMesh;
 };
 
 #endif /* defined(__FINDUVOVERLAPS2_H__) */

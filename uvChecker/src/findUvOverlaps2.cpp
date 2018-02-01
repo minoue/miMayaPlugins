@@ -1,8 +1,17 @@
 #include "findUvOverlaps2.h"
+#include "uvShell.h"
+#include "uvPoint.h"
+
 #include <maya/MArgDatabase.h>
 #include <maya/MArgList.h>
 #include <maya/MGlobal.h>
 #include <maya/MSelectionList.h>
+#include <maya/MIntArray.h>
+#include <maya/MString.h>
+
+#include <vector>
+#include <algorithm>
+#include <utility>
 
 
 FindUvOverlaps2::FindUvOverlaps2()
@@ -37,7 +46,7 @@ MStatus FindUvOverlaps2::doIt(const MArgList& args)
     }
 
     sel.getDagPath(0, mDagPath);
-    fnMesh.setObject(mDagPath);
+    mFnMesh.setObject(mDagPath);
 
     if (argData.isFlagSet("-verbose"))
         argData.getFlagArgument("-verbose", 0, verbose);
@@ -60,6 +69,84 @@ MStatus FindUvOverlaps2::doIt(const MArgList& args)
 
 MStatus FindUvOverlaps2::redoIt()
 {
+    MStatus status;
+
+    MIntArray uvShellIds;
+    unsigned int nbUvShells;
+    mFnMesh.getUvShellsIds(uvShellIds, nbUvShells);
+    int numPolygons = mFnMesh.numPolygons();
+
+    // Setup uv shell objects
+    std::vector<UvShell> uvShellArray;
+    uvShellArray.resize(nbUvShells);
+    for (unsigned int i = 0; i < nbUvShells; i++) {
+        UvShell shell;
+        shell.shellIndex = i;
+        uvShellArray[i] = shell;
+    }
+
+    for (unsigned int uvId = 0; uvId < uvShellIds.length(); uvId++) {
+        float u, v;
+        mFnMesh.getUV(uvId, u, v);
+        UvShell& currentShell = uvShellArray[uvShellIds[uvId]];
+        currentShell.uVector.push_back(u);
+        currentShell.vVector.push_back(v);
+    }
+
+    for (unsigned int id = 0; id < nbUvShells; id++) {
+        UvShell& shell = uvShellArray[id];
+        int size = shell.uVector.size();
+        float uMax = *std::max_element(shell.uVector.begin(), shell.uVector.end());
+        float vMax = *std::max_element(shell.vVector.begin(), shell.vVector.end());
+        float uMin = *std::min_element(shell.uVector.begin(), shell.uVector.end());
+        float vMin = *std::min_element(shell.vVector.begin(), shell.vVector.end());
+        shell.uMax = uMax;
+        shell.vMax = vMax;
+        shell.uMin = uMin;
+        shell.vMin = vMin;
+        // MString test;
+        // test.set(uMax);
+        // MGlobal::displayInfo(test);
+    }
+
+    for (unsigned int faceId = 0; faceId < numPolygons; faceId++) {
+        int numPolygonVertices = mFnMesh.polygonVertexCount(faceId);
+        for (int localVtx=0; localVtx<numPolygonVertices; localVtx++) {
+            int curLocalIndex;
+            int nextLocalIndex;
+            if (localVtx == numPolygonVertices-1) {
+                curLocalIndex = localVtx;
+                nextLocalIndex = 0;
+            }
+            else {
+                curLocalIndex = localVtx;
+                nextLocalIndex = localVtx+1;
+            }
+
+            // UV indecis by local order
+            int uvIdA;
+            int uvIdB;
+            mFnMesh.getPolygonUVid(faceId, curLocalIndex, uvIdA);
+            mFnMesh.getPolygonUVid(faceId, nextLocalIndex, uvIdB);
+            int currentShellIndex = uvShellIds[uvIdA];
+
+            std::pair<int, int> edgeIndex;
+            if (uvIdA < uvIdB)
+                edgeIndex = std::make_pair(uvIdA, uvIdB);
+            else
+                edgeIndex = std::make_pair(uvIdB, uvIdA);
+
+            // Get UV values and create edge objects
+            float u_current, v_current;
+            float u_next, v_next;
+            mFnMesh.getPolygonUV(faceId, curLocalIndex, u_current, v_current);
+            mFnMesh.getPolygonUV(faceId, nextLocalIndex, u_next, v_next);
+            UvPoint p1(u_current, v_current, uvIdA, currentShellIndex);
+            UvPoint p2(u_next, v_next, uvIdB, currentShellIndex);
+        }
+    }
+
+    
     return MS::kSuccess;
 }
 
