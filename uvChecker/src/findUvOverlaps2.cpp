@@ -1,6 +1,7 @@
 #include "findUvOverlaps2.h"
 #include "uvShell.h"
 #include "uvPoint.h"
+#include "uvEdge.h"
 
 #include <maya/MArgDatabase.h>
 #include <maya/MArgList.h>
@@ -104,9 +105,6 @@ MStatus FindUvOverlaps2::redoIt()
         shell.vMax = vMax;
         shell.uMin = uMin;
         shell.vMin = vMin;
-        // MString test;
-        // test.set(uMax);
-        // MGlobal::displayInfo(test);
     }
 
     for (unsigned int faceId = 0; faceId < numPolygons; faceId++) {
@@ -143,9 +141,29 @@ MStatus FindUvOverlaps2::redoIt()
             mFnMesh.getPolygonUV(faceId, nextLocalIndex, u_next, v_next);
             UvPoint p1(u_current, v_current, uvIdA, currentShellIndex);
             UvPoint p2(u_next, v_next, uvIdB, currentShellIndex);
+
+            UvPoint beginPt;
+            UvPoint endPt;
+
+            if (p1 > p2) {
+                beginPt = p2;
+                endPt = p1;
+            }
+            else {
+                beginPt = p1;
+                endPt = p2;
+            }
+
+            UvEdge edge(beginPt, endPt, edgeIndex);
+            uvShellArray[currentShellIndex].edgeSet.insert(edge);
         }
     }
 
+    // UvShell& testShell = uvShellArray[0];
+    // int numEdges = testShell.edgeSet.size();
+    // MString test;
+    // test.set(numEdges);
+    // MGlobal::displayInfo(test);
     
     return MS::kSuccess;
 }

@@ -4,6 +4,8 @@
 #include "uvPoint.h"
 #include <unordered_set>
 #include <vector>
+#include "uvEdge.h"
+#include <set>
 
 class UvShell {
 public:
@@ -21,6 +23,7 @@ public:
     std::vector<float> vVector;
     std::unordered_set<int> polygonIDs;
     std::vector<int> borderUvPoints;
+    std::set<UvEdge> edgeSet;
 
     bool operator==(const UvShell& rhs) const;
     inline bool operator!=(const UvShell& rhs) const
