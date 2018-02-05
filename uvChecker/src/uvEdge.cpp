@@ -1,4 +1,7 @@
 #include "uvEdge.h"
+#include <iostream>
+#include <math.h>
+#include <float.h>
 
 UvEdge::UvEdge()
 {
@@ -73,6 +76,25 @@ bool UvEdge::isIntersected(UvEdge& otherEdge) {
         otherEdge.end.u,
         otherEdge.end.v);
 
+    float zero = 0.0;
+
+    if (fabsf(zero - area1) <= FLT_EPSILON * fmaxf(1.f, fmaxf(fabsf(zero), fabsf(area1))))
+    {
+        area1 = 0;
+    }
+    if (fabsf(zero - area2) <= FLT_EPSILON * fmaxf(1.f, fmaxf(fabsf(zero), fabsf(area2))))
+    {
+        area2 = 0;
+    }
+    if (fabsf(zero - area3) <= FLT_EPSILON * fmaxf(1.f, fmaxf(fabsf(zero), fabsf(area3))))
+    {
+        area3 = 0;
+    }
+    if (fabsf(zero - area4) <= FLT_EPSILON * fmaxf(1.f, fmaxf(fabsf(zero), fabsf(area4))))
+    {
+        area4 = 0;
+    }
+
     float ccw1 = area1 * area2;
     float ccw2 = area3 * area4;
 
@@ -90,8 +112,9 @@ bool UvEdge::isIntersected(UvEdge& otherEdge) {
             return true;
     }
 
-    if (ccw1 < 0 && ccw2 < 0)
+    if (ccw1 < 0 && ccw2 < 0) {
         return true;
+    }
     else
         return false;
 
