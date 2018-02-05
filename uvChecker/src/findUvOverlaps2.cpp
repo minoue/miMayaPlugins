@@ -2,6 +2,8 @@
 #include "uvShell.h"
 #include "uvPoint.h"
 #include "uvEdge.h"
+#include "event.h"
+#include "testCase.h"
 
 #include <maya/MArgDatabase.h>
 #include <maya/MArgList.h>
@@ -9,10 +11,13 @@
 #include <maya/MSelectionList.h>
 #include <maya/MIntArray.h>
 #include <maya/MString.h>
+#include <maya/MStringArray.h>
 
 #include <vector>
 #include <algorithm>
 #include <utility>
+#include <deque>
+#include <iterator>
 
 
 FindUvOverlaps2::FindUvOverlaps2()
@@ -159,12 +164,94 @@ MStatus FindUvOverlaps2::redoIt()
         }
     }
 
-    // UvShell& testShell = uvShellArray[0];
+    // UvShell& testShell = uvShellArray[1];
     // int numEdges = testShell.edgeSet.size();
     // MString test;
     // test.set(numEdges);
     // MGlobal::displayInfo(test);
-    
+
+    std::set<int> resultSet;
+    check(uvShellArray[0].edgeSet, resultSet);
+   
+    // TestCase tester;
+    // tester.checkEdgeIntersection();
+
+    return MS::kSuccess;
+}
+
+
+MStatus FindUvOverlaps2::check(std::set<UvEdge> edges, std::set<int>& result)
+{
+    std::set<UvEdge>::iterator iter;
+
+    std::deque<Event> testQueue;
+
+    int eventIndex = 0;
+    for (iter = edges.begin(); iter != edges.end(); ++iter) {
+        UvEdge edge = *iter;
+        Event ev1("begin", edge.begin, edge, eventIndex);
+        testQueue.push_back(ev1);
+        eventIndex += 1;
+        Event ev2("end", edge.end, edge, eventIndex);
+        testQueue.push_back(ev2);
+        eventIndex += 1;
+    }
+
+    std::sort(testQueue.begin(), testQueue.end());
+
+    std::vector<UvEdge> statusVec;
+    statusVec.reserve(edges.size());
+
+    std::set<int> finalSet;
+
+    while(true) {
+        if (testQueue.empty()) {
+            break;
+        }
+        Event firstEvent = testQueue.front();
+        UvEdge edge = firstEvent.edge;
+        testQueue.pop_front();
+
+        if (firstEvent.status == "begin") {
+            statusVec.push_back(edge);
+            if (statusVec.size() == 1) {
+                continue;
+            }
+            for (int i=0; i<statusVec.size(); i++) {
+                UvEdge& thisEdge = statusVec[i];
+                for (int s=0; s<statusVec.size(); s++) {
+                    if (i == s) {
+                        continue;
+                    }
+                    else {
+                        UvEdge& targetEdge = statusVec[s];
+                        if (thisEdge.isIntersected(targetEdge)) {
+                            finalSet.insert(thisEdge.index.first);
+                            finalSet.insert(thisEdge.index.second);
+                        }
+                    }
+                }
+            }
+        }
+        else if (firstEvent.status == "end") {
+            auto found_itr = std::find(statusVec.begin(), statusVec.end(), edge);
+            statusVec.erase(found_itr);
+        }
+        else {
+            MGlobal::displayError("asdf");
+        }
+    }
+
+    MStringArray resultStrArray; 
+    for (std::set<int>::iterator fsi = finalSet.begin(); fsi != finalSet.end(); ++fsi) {
+        MString index;
+        index.set(*fsi);
+        MString fullPath = mDagPath.fullPathName();
+        MString n = fullPath + ".map[" + index + "]";
+        resultStrArray.append(n);
+    }
+    MPxCommand::setResult(resultStrArray);
+
     return MS::kSuccess;
 }
 

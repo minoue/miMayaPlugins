@@ -5,6 +5,8 @@
 #include <maya/MSyntax.h>
 #include <maya/MDagPath.h>
 #include <maya/MFnMesh.h>
+#include <set>
+#include "uvEdge.h"
 
 
 class FindUvOverlaps2 : public MPxCommand {
@@ -17,6 +19,7 @@ public:
     bool isUndoable() const;
     static void* creater();
     static MSyntax newSyntax();
+    MStatus check(std::set<UvEdge> edges, std::set<int>& result);
 
 private:
     bool verbose;
