@@ -19,6 +19,8 @@ set(SOURCE_FILES
         src/findUvOverlaps2.h
         src/event.cpp
         src/event.h
+        src/testCase.cpp
+        src/testCase.h
         )
 
 # https://www.guyrutenberg.com/2014/01/05/enabling-c11-c0x-in-cmake/
