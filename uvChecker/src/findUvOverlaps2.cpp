@@ -1,7 +1,5 @@
 #include "findUvOverlaps2.h"
-#include "uvShell.h"
 #include "uvPoint.h"
-#include "uvEdge.h"
 #include "event.h"
 #include "testCase.h"
 
@@ -13,6 +11,8 @@
 #include <maya/MString.h>
 #include <maya/MStringArray.h>
 
+#include <iostream>
+#include <string>
 #include <vector>
 #include <algorithm>
 #include <utility>
@@ -58,7 +58,7 @@ MStatus FindUvOverlaps2::doIt(const MArgList& args)
         argData.getFlagArgument("-verbose", 0, verbose);
     else
         verbose = false;
-    
+
     status = mDagPath.extendToShape();
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
@@ -67,7 +67,7 @@ MStatus FindUvOverlaps2::doIt(const MArgList& args)
         return MStatus::kFailure;
     }
 
-    if (verbose) 
+    if (verbose)
         MGlobal::displayInfo("Target object : " + mDagPath.fullPathName());
 
     return redoIt();
@@ -80,6 +80,7 @@ MStatus FindUvOverlaps2::redoIt()
     MIntArray uvShellIds;
     unsigned int nbUvShells;
     mFnMesh.getUvShellsIds(uvShellIds, nbUvShells);
+    int numUVs = mFnMesh.numUVs();
     int numPolygons = mFnMesh.numPolygons();
 
     // Setup uv shell objects
@@ -91,7 +92,8 @@ MStatus FindUvOverlaps2::redoIt()
         uvShellArray[i] = shell;
     }
 
-    for (unsigned int uvId = 0; uvId < uvShellIds.length(); uvId++) {
+    // Get UV values and add them to the shell
+    for (unsigned int uvId = 0; uvId < numUVs; uvId++) {
         float u, v;
         mFnMesh.getUV(uvId, u, v);
         UvShell& currentShell = uvShellArray[uvShellIds[uvId]];
@@ -99,6 +101,7 @@ MStatus FindUvOverlaps2::redoIt()
         currentShell.vVector.push_back(v);
     }
 
+    // Setup bouding box inormation for each shell
     for (unsigned int id = 0; id < nbUvShells; id++) {
         UvShell& shell = uvShellArray[id];
         int size = shell.uVector.size();
@@ -112,6 +115,7 @@ MStatus FindUvOverlaps2::redoIt()
         shell.vMin = vMin;
     }
 
+    // Loop all polygon faces and create edge objects
     for (unsigned int faceId = 0; faceId < numPolygons; faceId++) {
         int numPolygonVertices = mFnMesh.polygonVertexCount(faceId);
         for (int localVtx=0; localVtx<numPolygonVertices; localVtx++) {
@@ -159,28 +163,91 @@ MStatus FindUvOverlaps2::redoIt()
                 endPt = p2;
             }
 
+            // Create edge objects and insert them to shell edge set
             UvEdge edge(beginPt, endPt, edgeIndex);
             uvShellArray[currentShellIndex].edgeSet.insert(edge);
         }
     }
 
-    // UvShell& testShell = uvShellArray[1];
-    // int numEdges = testShell.edgeSet.size();
-    // MString test;
-    // test.set(numEdges);
-    // MGlobal::displayInfo(test);
+    // Countainer for a set of overlapped shell edges
+    std::vector<std::set<UvEdge> > overlappedShells;
 
+    // Countainer for a set of shell indices that doesn't have be checked as single shell
+    std::set<int> dontCheck;
+
+    int numShells = uvShellArray.size();
+
+    // Get combinations of shell indices eg. (0, 1), (0, 2), (1, 2),,,
+    std::vector<std::vector<int>> shellCombinations;
+    makeCombinations(numShells, shellCombinations);
+
+    for (int i=0; i<shellCombinations.size(); i++) {
+        UvShell& shellA = uvShellArray[shellCombinations[i][0]];
+        UvShell& shellB = uvShellArray[shellCombinations[i][1]];
+        if (isShellOverlapped(shellA, shellB)) {
+            // If two shells are overlapped, combine them into one single shell
+            std::set<UvEdge> combinedEdges;
+            combinedEdges.insert(shellA.edgeSet.begin(), shellA.edgeSet.end());
+            combinedEdges.insert(shellB.edgeSet.begin(), shellB.edgeSet.end());
+            overlappedShells.push_back(combinedEdges);
+
+            dontCheck.insert(shellA.shellIndex);
+            dontCheck.insert(shellB.shellIndex);
+        }
+    }
+
+    // Countainer for a set of UV indices for the final result
     std::set<int> resultSet;
-    check(uvShellArray[0].edgeSet, resultSet);
-   
-    // TestCase tester;
-    // tester.checkEdgeIntersection();
+
+    // Run checker for overlapped shells
+    for (int s=0; s<overlappedShells.size(); s++) {
+        check(overlappedShells[s], resultSet);
+    }
+
+    // Run checker for single shells
+    for (int n=0; n<uvShellArray.size(); n++) {
+        if (std::find(dontCheck.begin(), dontCheck.end(), n) != dontCheck.end()) {
+            // if contains, do nothing
+        }
+        else {
+            check(uvShellArray[n].edgeSet, resultSet);
+        }
+    }
+
+    // Setup return result
+    MStringArray resultStrArray;
+    for (std::set<int>::iterator fsi = resultSet.begin(); fsi != resultSet.end(); ++fsi) {
+        MString index;
+        index.set(*fsi);
+        MString fullPath = mDagPath.fullPathName();
+        MString n = fullPath + ".map[" + index + "]";
+        resultStrArray.append(n);
+    }
+    MPxCommand::setResult(resultStrArray);
 
     return MS::kSuccess;
 }
 
 
-MStatus FindUvOverlaps2::check(std::set<UvEdge> edges, std::set<int>& result)
+bool FindUvOverlaps2::isShellOverlapped(UvShell& shellA, UvShell& shellB)
+{
+    if (shellA.uMax < shellB.uMin)
+        return false;
+
+    if (shellA.uMin > shellB.uMax)
+        return false;
+
+    if (shellA.vMax < shellB.vMin)
+        return false;
+
+    if (shellA.vMin > shellB.vMax)
+        return false;
+
+    return true;
+}
+
+
+MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges, std::set<int>& resultSet)
 {
     std::set<UvEdge>::iterator iter;
 
@@ -199,10 +266,10 @@ MStatus FindUvOverlaps2::check(std::set<UvEdge> edges, std::set<int>& result)
 
     std::sort(testQueue.begin(), testQueue.end());
 
-    std::vector<UvEdge> statusVec;
-    statusVec.reserve(edges.size());
+    std::vector<UvEdge> status;
+    status.reserve(edges.size());
 
-    std::set<int> finalSet;
+    int numStatus;
 
     while(true) {
         if (testQueue.empty()) {
@@ -213,47 +280,68 @@ MStatus FindUvOverlaps2::check(std::set<UvEdge> edges, std::set<int>& result)
         testQueue.pop_front();
 
         if (firstEvent.status == "begin") {
-            statusVec.push_back(edge);
-            if (statusVec.size() == 1) {
+            status.push_back(edge);
+            numStatus = status.size();
+
+            if (numStatus == 1) {
                 continue;
             }
-            for (int i=0; i<statusVec.size(); i++) {
-                UvEdge& thisEdge = statusVec[i];
-                for (int s=0; s<statusVec.size(); s++) {
-                    if (i == s) {
+
+            for (int i=0; i<numStatus; i++) {
+                UvEdge& thisEdge = status[i];
+                float& u1 = thisEdge.begin.u;
+                float& u2 = thisEdge.end.u;
+                for (int s=0; s<numStatus; s++) {
+                    if (i == s)
                         continue;
+
+                    UvEdge& targetEdge = status[s];
+                    float& u_begin = targetEdge.begin.u;
+                    float& u_end = targetEdge.end.u;
+                    if ((u_begin < u1 && u1 < u_end) || (u_begin < u2 && u2 < u_end)) {
+                        if (thisEdge.isIntersected(targetEdge)) {
+                            resultSet.insert(thisEdge.index.first);
+                            resultSet.insert(thisEdge.index.second);
+                            resultSet.insert(targetEdge.index.first);
+                            resultSet.insert(targetEdge.index.second);
+                        }
                     }
                     else {
-                        UvEdge& targetEdge = statusVec[s];
-                        if (thisEdge.isIntersected(targetEdge)) {
-                            finalSet.insert(thisEdge.index.first);
-                            finalSet.insert(thisEdge.index.second);
-                        }
+                        // Do nothing
                     }
                 }
             }
         }
         else if (firstEvent.status == "end") {
-            auto found_itr = std::find(statusVec.begin(), statusVec.end(), edge);
-            statusVec.erase(found_itr);
+            auto found_itr = std::find(status.begin(), status.end(), edge);
+            status.erase(found_itr);
         }
         else {
-            MGlobal::displayError("asdf");
         }
     }
-
-    MStringArray resultStrArray; 
-    for (std::set<int>::iterator fsi = finalSet.begin(); fsi != finalSet.end(); ++fsi) {
-        MString index;
-        index.set(*fsi);
-        MString fullPath = mDagPath.fullPathName();
-        MString n = fullPath + ".map[" + index + "]";
-        resultStrArray.append(n);
-    }
-    MPxCommand::setResult(resultStrArray);
 
     return MS::kSuccess;
 }
+
+
+/* https://stackoverflow.com/questions/12991758/creating-all-possible-k-combinations-of-n-items-in-c */
+void FindUvOverlaps2::makeCombinations(int N, std::vector<std::vector<int>>& vec)
+{
+    std::string bitmask(2, 1); // K leading 1's
+    bitmask.resize(N, 0); // N-K trailing 0's
+
+    // print integers and permute bitmask
+    do {
+        std::vector<int> sb;
+        for (int i = 0; i < N; ++i) {
+            if (bitmask[i]) {
+                sb.push_back(i);
+            }
+        }
+        vec.push_back(sb);
+    } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+}
+
 
 MStatus FindUvOverlaps2::undoIt()
 {

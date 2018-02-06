@@ -7,6 +7,7 @@
 #include <maya/MFnMesh.h>
 #include <set>
 #include "uvEdge.h"
+#include "uvShell.h"
 
 
 class FindUvOverlaps2 : public MPxCommand {
@@ -19,7 +20,9 @@ public:
     bool isUndoable() const;
     static void* creater();
     static MSyntax newSyntax();
-    MStatus check(std::set<UvEdge> edges, std::set<int>& result);
+    MStatus check(std::set<UvEdge>& edges, std::set<int>& result);
+    bool isShellOverlapped(UvShell& shellA, UvShell& shellB);
+    void makeCombinations(int N, std::vector<std::vector<int> >& vec);
 
 private:
     bool verbose;
