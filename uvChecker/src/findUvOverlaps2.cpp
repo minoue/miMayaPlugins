@@ -104,7 +104,6 @@ MStatus FindUvOverlaps2::redoIt()
     // Setup bouding box inormation for each shell
     for (unsigned int id = 0; id < nbUvShells; id++) {
         UvShell& shell = uvShellArray[id];
-        int size = shell.uVector.size();
         float uMax = *std::max_element(shell.uVector.begin(), shell.uVector.end());
         float vMax = *std::max_element(shell.vVector.begin(), shell.vVector.end());
         float uMin = *std::min_element(shell.uVector.begin(), shell.uVector.end());
@@ -210,7 +209,7 @@ MStatus FindUvOverlaps2::redoIt()
             // if contains, do nothing
         }
         else {
-            check(uvShellArray[n].edgeSet, resultSet);
+			check(uvShellArray[n].edgeSet, resultSet);
         }
     }
 
@@ -296,9 +295,18 @@ MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges, std::set<int>& resultSet
                         continue;
 
                     UvEdge& targetEdge = status[s];
-                    float& u_begin = targetEdge.begin.u;
-                    float& u_end = targetEdge.end.u;
-                    if ((u_begin < u1 && u1 < u_end) || (u_begin < u2 && u2 < u_end)) {
+
+                    float u_small;
+                    float u_big;
+                    if (targetEdge.begin.u < targetEdge.end.u) {
+                        u_small = targetEdge.begin.u;
+                        u_big = targetEdge.end.u;
+                    } else {
+                        u_small = targetEdge.end.u;
+                        u_big = targetEdge.begin.u;
+                    }
+
+                    if ((u_small < u1 && u1 < u_big) || (u_small < u2 && u2 < u_big)) {
                         if (thisEdge.isIntersected(targetEdge)) {
                             resultSet.insert(thisEdge.index.first);
                             resultSet.insert(thisEdge.index.second);
