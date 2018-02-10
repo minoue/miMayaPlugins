@@ -12,6 +12,8 @@ UvEdge::UvEdge(UvPoint beginPt, UvPoint endPt, std::pair<int, int> index)
     this->begin = beginPt;
     this->end = endPt;
     this->index = index;
+    this->beginIndex = beginPt.index;
+    this->endIndex = endPt.index;
 }
 
 UvEdge::~UvEdge()

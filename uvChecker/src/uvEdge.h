@@ -14,6 +14,8 @@ public:
     UvPoint begin;
     UvPoint end;
     std::pair<int, int> index;
+    int beginIndex;
+    int endIndex;
 
     bool operator==(const UvEdge& rhs) const;
     inline bool operator!=(const UvEdge& rhs) const
