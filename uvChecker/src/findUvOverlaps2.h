@@ -5,6 +5,7 @@
 #include <maya/MSyntax.h>
 #include <maya/MDagPath.h>
 #include <maya/MFnMesh.h>
+#include <maya/MString.h>
 #include <set>
 #include "uvEdge.h"
 #include "uvShell.h"
@@ -28,6 +29,7 @@ private:
     bool verbose;
     MDagPath mDagPath;
     MFnMesh mFnMesh;
+    MString uvSet;
 };
 
 #endif /* defined(__FINDUVOVERLAPS2_H__) */

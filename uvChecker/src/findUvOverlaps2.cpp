@@ -33,6 +33,7 @@ MSyntax FindUvOverlaps2::newSyntax()
     MSyntax syntax;
     syntax.addArg(MSyntax::kString);
     syntax.addFlag("-v", "-verbose", MSyntax::kBoolean);
+    syntax.addFlag("-set", "-uvSet", MSyntax::kString);
     return syntax;
 }
 
@@ -59,8 +60,31 @@ MStatus FindUvOverlaps2::doIt(const MArgList& args)
     else
         verbose = false;
 
+    if (argData.isFlagSet("-uvSet"))
+        argData.getFlagArgument("-uvSet", 0, uvSet);
+    else
+        uvSet = "map1";
+
+    // Check if specified object is geometry or not
     status = mDagPath.extendToShape();
     CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    // Check if specified uv set exists
+    MStringArray uvSetNames;
+    bool uvSetFound;
+    mFnMesh.getUVSetNames(uvSetNames);
+    for (int uv=0; uv<uvSetNames.length(); uv++) {
+        MString& uvSetName = uvSetNames[uv];
+        if (uvSetName == uvSet)
+            uvSetFound = true;
+        else
+            uvSetFound = false;
+    }
+
+    if (uvSetFound == false) {
+        MGlobal::displayError("Error: uv set not found\n");
+        return MS::kFailure;
+    }
 
     if (mDagPath.apiType() != MFn::kMesh) {
         MGlobal::displayError("Selected object is not mesh.");
@@ -69,6 +93,7 @@ MStatus FindUvOverlaps2::doIt(const MArgList& args)
 
     if (verbose)
         MGlobal::displayInfo("Target object : " + mDagPath.fullPathName());
+        MGlobal::displayInfo("UVset for check : " + uvSet);
 
     return redoIt();
 }
@@ -77,10 +102,12 @@ MStatus FindUvOverlaps2::redoIt()
 {
     MStatus status;
 
+    const MString* uvSetPtr = &uvSet;
+
     MIntArray uvShellIds;
     unsigned int nbUvShells;
-    mFnMesh.getUvShellsIds(uvShellIds, nbUvShells);
-    int numUVs = mFnMesh.numUVs();
+    mFnMesh.getUvShellsIds(uvShellIds, nbUvShells, uvSetPtr);
+    int numUVs = mFnMesh.numUVs(uvSet);
     int numPolygons = mFnMesh.numPolygons();
 
     // Setup uv shell objects
@@ -95,7 +122,7 @@ MStatus FindUvOverlaps2::redoIt()
     // Get UV values and add them to the shell
     for (unsigned int uvId = 0; uvId < numUVs; uvId++) {
         float u, v;
-        mFnMesh.getUV(uvId, u, v);
+        mFnMesh.getUV(uvId, u, v, uvSetPtr);
         UvShell& currentShell = uvShellArray[uvShellIds[uvId]];
         currentShell.uVector.push_back(u);
         currentShell.vVector.push_back(v);
@@ -132,8 +159,8 @@ MStatus FindUvOverlaps2::redoIt()
             // UV indecis by local order
             int uvIdA;
             int uvIdB;
-            mFnMesh.getPolygonUVid(faceId, curLocalIndex, uvIdA);
-            mFnMesh.getPolygonUVid(faceId, nextLocalIndex, uvIdB);
+            mFnMesh.getPolygonUVid(faceId, curLocalIndex, uvIdA, uvSetPtr);
+            mFnMesh.getPolygonUVid(faceId, nextLocalIndex, uvIdB, uvSetPtr);
             int currentShellIndex = uvShellIds[uvIdA];
 
             std::pair<int, int> edgeIndex;
@@ -145,8 +172,8 @@ MStatus FindUvOverlaps2::redoIt()
             // Get UV values and create edge objects
             float u_current, v_current;
             float u_next, v_next;
-            mFnMesh.getPolygonUV(faceId, curLocalIndex, u_current, v_current);
-            mFnMesh.getPolygonUV(faceId, nextLocalIndex, u_next, v_next);
+            mFnMesh.getPolygonUV(faceId, curLocalIndex, u_current, v_current, uvSetPtr);
+            mFnMesh.getPolygonUV(faceId, nextLocalIndex, u_next, v_next, uvSetPtr);
             UvPoint p1(u_current, v_current, uvIdA, currentShellIndex);
             UvPoint p2(u_next, v_next, uvIdB, currentShellIndex);
 
