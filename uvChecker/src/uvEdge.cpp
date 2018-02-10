@@ -95,25 +95,6 @@ bool UvEdge::isIntersected(UvEdge& otherEdge) {
         otherEdge.end.u,
         otherEdge.end.v);
 
-    float zero = 0.0;
-
-    if (fabsf(zero - area1) <= FLT_EPSILON * fmaxf(1.f, fmaxf(fabsf(zero), fabsf(area1))))
-    {
-        area1 = 0;
-    }
-    if (fabsf(zero - area2) <= FLT_EPSILON * fmaxf(1.f, fmaxf(fabsf(zero), fabsf(area2))))
-    {
-        area2 = 0;
-    }
-    if (fabsf(zero - area3) <= FLT_EPSILON * fmaxf(1.f, fmaxf(fabsf(zero), fabsf(area3))))
-    {
-        area3 = 0;
-    }
-    if (fabsf(zero - area4) <= FLT_EPSILON * fmaxf(1.f, fmaxf(fabsf(zero), fabsf(area4))))
-    {
-        area4 = 0;
-    }
-
     if (area1 == 0.0 && area2 == 0.0) {
         // If two edges are parallel on a same line
         Vector v1 = this->begin - otherEdge.begin;
@@ -149,14 +130,8 @@ bool UvEdge::isIntersected(UvEdge& otherEdge) {
 
 }
 
-float UvEdge::getTriangleArea(float x1,
-                              float y1,
-                              float x2,
-                              float y2,
-                              float x3,
-                              float y3) {
-
-    float U = (x1 * y2) + (x2 * y3) + (x3 * y1) - (y1 * x2) - (y2 * x3) - (y3 * x1);
-    float S = U / 2.0;
-    return S;
+float UvEdge::getTriangleArea(float& Ax, float& Ay, float& Bx, float& By, float& Cx, float& Cy)
+{
+    float area = ((Ax * (By - Cy)) + (Bx * (Cy - Ay)) + (Cx * (Ay - By))) / (float)2.0;
+    return area;
 }
