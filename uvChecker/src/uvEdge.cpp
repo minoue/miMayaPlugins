@@ -25,26 +25,6 @@ bool UvEdge::operator==(const UvEdge& rhs) const
     return this->index == rhs.index;
 }
 
-bool UvEdge::operator>(const UvEdge& rhs) const
-{
-    return this->index > rhs.index;
-}
-
-bool UvEdge::operator>=(const UvEdge& rhs) const
-{
-    return this->index >= rhs.index;
-}
-
-bool UvEdge::operator<(const UvEdge& rhs) const
-{
-    return this->index < rhs.index;
-}
-
-bool UvEdge::operator<=(const UvEdge& rhs) const
-{
-    return this->index <= rhs.index;
-}
-
 bool UvEdge::isIntersected(UvEdge& otherEdge) {
     
     // Check edge index if they have shared UV index

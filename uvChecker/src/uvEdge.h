@@ -23,11 +23,6 @@ public:
         return !(*this == rhs);
     }
 
-    bool operator>(const UvEdge& rhs) const;
-    bool operator>=(const UvEdge& rhs) const;
-    bool operator<(const UvEdge& rhs) const;
-    bool operator<=(const UvEdge& rhs) const;
-
     bool isIntersected(UvEdge& otherEdge);
     float getTriangleArea(float& x1,
                           float& y1,
