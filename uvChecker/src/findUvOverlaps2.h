@@ -6,7 +6,9 @@
 #include <maya/MDagPath.h>
 #include <maya/MFnMesh.h>
 #include <maya/MString.h>
+
 #include <set>
+#include <unordered_set>
 #include "uvEdge.h"
 #include "uvShell.h"
 
@@ -21,7 +23,7 @@ public:
     bool isUndoable() const;
     static void* creater();
     static MSyntax newSyntax();
-    MStatus check(std::set<UvEdge>& edges, std::set<int>& result);
+    MStatus check(std::unordered_set<UvEdge, hash_edge>& edges, std::unordered_set<int>& result);
     bool isShellOverlapped(UvShell& shellA, UvShell& shellB);
     void makeCombinations(int N, std::vector<std::vector<int> >& vec);
 

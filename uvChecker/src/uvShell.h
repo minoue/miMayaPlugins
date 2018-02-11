@@ -7,6 +7,14 @@
 #include "uvEdge.h"
 #include <set>
 
+
+struct hash_edge{
+    size_t operator()(const UvEdge& edge) const{
+        return std::hash<int>()(edge.beginIndex) ^ std::hash<int>()(edge.endIndex);
+    }
+};
+
+
 class UvShell {
 public:
     UvShell();
@@ -23,7 +31,7 @@ public:
     std::vector<float> vVector;
     std::unordered_set<int> polygonIDs;
     std::vector<int> borderUvPoints;
-    std::set<UvEdge> edgeSet;
+    std::unordered_set<UvEdge, hash_edge> edgeSet;
 
     bool operator==(const UvShell& rhs) const;
     inline bool operator!=(const UvShell& rhs) const

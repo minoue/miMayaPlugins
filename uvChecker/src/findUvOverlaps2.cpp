@@ -196,7 +196,7 @@ MStatus FindUvOverlaps2::redoIt()
     }
 
     // Countainer for a set of overlapped shell edges
-    std::vector<std::set<UvEdge> > overlappedShells;
+    std::vector<std::unordered_set<UvEdge, hash_edge> > overlappedShells;
 
     // Countainer for a set of shell indices that doesn't have be checked as single shell
     std::set<int> dontCheck;
@@ -210,9 +210,10 @@ MStatus FindUvOverlaps2::redoIt()
     for (int i=0; i<shellCombinations.size(); i++) {
         UvShell& shellA = uvShellArray[shellCombinations[i][0]];
         UvShell& shellB = uvShellArray[shellCombinations[i][1]];
+
         if (isShellOverlapped(shellA, shellB)) {
             // If two shells are overlapped, combine them into one single shell
-            std::set<UvEdge> combinedEdges;
+            std::unordered_set<UvEdge, hash_edge> combinedEdges;
             combinedEdges.insert(shellA.edgeSet.begin(), shellA.edgeSet.end());
             combinedEdges.insert(shellB.edgeSet.begin(), shellB.edgeSet.end());
             overlappedShells.push_back(combinedEdges);
@@ -223,7 +224,7 @@ MStatus FindUvOverlaps2::redoIt()
     }
 
     // Countainer for a set of UV indices for the final result
-    std::set<int> resultSet;
+    std::unordered_set<int> resultSet;
 
     // Run checker for overlapped shells
     for (int s=0; s<overlappedShells.size(); s++) {
@@ -242,7 +243,7 @@ MStatus FindUvOverlaps2::redoIt()
 
     // Setup return result
     MStringArray resultStrArray;
-    for (std::set<int>::iterator fsi = resultSet.begin(); fsi != resultSet.end(); ++fsi) {
+    for (std::unordered_set<int>::iterator fsi = resultSet.begin(); fsi != resultSet.end(); ++fsi) {
         MString index;
         index.set(*fsi);
         MString fullPath = mDagPath.fullPathName();
@@ -273,9 +274,9 @@ bool FindUvOverlaps2::isShellOverlapped(UvShell& shellA, UvShell& shellB)
 }
 
 
-MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges, std::set<int>& resultSet)
+MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std::unordered_set<int>& resultSet)
 {
-    std::set<UvEdge>::iterator iter;
+    std::unordered_set<UvEdge, hash_edge>::iterator iter;
 
     std::deque<Event> testQueue;
 
