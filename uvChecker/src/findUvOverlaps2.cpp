@@ -107,6 +107,13 @@ MStatus FindUvOverlaps2::redoIt()
     MIntArray uvShellIds;
     unsigned int nbUvShells;
     mFnMesh.getUvShellsIds(uvShellIds, nbUvShells, uvSetPtr);
+
+    // if no UVs are detected on this mesh
+    if (nbUvShells == 0) {
+        MGlobal::displayError("No UVs are found.");
+        return MS::kFailure;
+    }
+
     int numUVs = mFnMesh.numUVs(uvSet);
     int numPolygons = mFnMesh.numPolygons();
 
@@ -159,8 +166,18 @@ MStatus FindUvOverlaps2::redoIt()
             // UV indecis by local order
             int uvIdA;
             int uvIdB;
-            mFnMesh.getPolygonUVid(faceId, curLocalIndex, uvIdA, uvSetPtr);
-            mFnMesh.getPolygonUVid(faceId, nextLocalIndex, uvIdB, uvSetPtr);
+
+            // Check if current polygon face has mapped UVs, if not break this loop and go to next face
+            MStatus statusA;
+            MStatus statusB;
+            statusA = mFnMesh.getPolygonUVid(faceId, curLocalIndex, uvIdA, uvSetPtr);
+            statusB = mFnMesh.getPolygonUVid(faceId, nextLocalIndex, uvIdB, uvSetPtr);
+            if (statusA != MS::kSuccess || statusB != MS::kSuccess) {
+                if (verbose)
+                    MGlobal::displayWarning("Non mapped faces are found");
+                break;
+            }
+
             int currentShellIndex = uvShellIds[uvIdA];
 
             std::pair<int, int> edgeIndex;
