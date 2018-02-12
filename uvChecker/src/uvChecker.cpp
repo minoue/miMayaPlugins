@@ -120,7 +120,7 @@ bool UvChecker::isUndoable() const
     return false;
 }
 
-void* UvChecker::creater()
+void* UvChecker::creator()
 {
     return new UvChecker;
 }

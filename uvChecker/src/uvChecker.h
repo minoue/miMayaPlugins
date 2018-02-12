@@ -13,7 +13,7 @@ public:
     MStatus undoIt();
     MStatus redoIt();
     bool isUndoable() const;
-    static void* creater();
+    static void* creator();
     static MSyntax newSyntax();
 
     MStatus findUdimIntersections();

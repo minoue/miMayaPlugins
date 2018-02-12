@@ -708,7 +708,7 @@ bool FindUvOverlaps::isUndoable() const
     return false;
 }
 
-void* FindUvOverlaps::creater()
+void* FindUvOverlaps::creator()
 {
     return new FindUvOverlaps;
 }

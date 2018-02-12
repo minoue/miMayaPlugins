@@ -135,7 +135,7 @@ MStatus FindUvOverlaps2::redoIt()
         currentShell.vVector.push_back(v);
     }
 
-    // Setup bouding box inormation for each shell
+    // Setup bounding box information for each shell
     for (unsigned int id = 0; id < nbUvShells; id++) {
         UvShell& shell = uvShellArray[id];
         float uMax = *std::max_element(shell.uVector.begin(), shell.uVector.end());
@@ -163,7 +163,7 @@ MStatus FindUvOverlaps2::redoIt()
                 nextLocalIndex = localVtx+1;
             }
 
-            // UV indecis by local order
+            // UV indices by local order
             int uvIdA;
             int uvIdB;
 
@@ -406,7 +406,7 @@ bool FindUvOverlaps2::isUndoable() const
     return false;
 }
 
-void* FindUvOverlaps2::creater()
+void* FindUvOverlaps2::creator()
 {
     return new FindUvOverlaps2;
 }

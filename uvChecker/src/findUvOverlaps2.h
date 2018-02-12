@@ -21,7 +21,7 @@ public:
     MStatus undoIt();
     MStatus redoIt();
     bool isUndoable() const;
-    static void* creater();
+    static void* creator();
     static MSyntax newSyntax();
     MStatus check(std::unordered_set<UvEdge, hash_edge>& edges, std::unordered_set<int>& result);
     bool isShellOverlapped(UvShell& shellA, UvShell& shellB);

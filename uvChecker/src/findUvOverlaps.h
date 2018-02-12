@@ -24,7 +24,7 @@ public:
     MStatus undoIt();
     MStatus redoIt();
     bool isUndoable() const;
-    static void* creater();
+    static void* creator();
     static MSyntax newSyntax();
 
     bool checkShellIntersection(UvShell& s1, UvShell& s2);
