@@ -9,5 +9,7 @@ tags
 tags
 ctags
 build/
+uvChecker/.idea/
+uvChecker/cmake-build-debug/
 modules/
 !CMakeLists.txt
