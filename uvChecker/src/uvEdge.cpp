@@ -2,6 +2,7 @@
 #include <iostream>
 #include <math.h>
 #include <float.h>
+#include <maya/MGlobal.h>
 
 UvEdge::UvEdge()
 {
@@ -23,6 +24,46 @@ UvEdge::~UvEdge()
 bool UvEdge::operator==(const UvEdge& rhs) const
 {
     return this->index == rhs.index;
+}
+
+bool UvEdge::operator>(const UvEdge& rhs) const
+{
+    if (this->crossingPointX == rhs.crossingPointX) {
+        return this->end.u > rhs.end.u;
+
+    } else {
+        return this->crossingPointX > rhs.crossingPointX;
+    }
+}
+
+bool UvEdge::operator>=(const UvEdge& rhs) const
+{
+    if (this->crossingPointX == rhs.crossingPointX) {
+        return this->end.u >= rhs.end.u;
+
+    } else {
+        return this->crossingPointX >= rhs.crossingPointX;
+    }
+}
+
+bool UvEdge::operator<(const UvEdge& rhs) const
+{
+    if (this->crossingPointX == rhs.crossingPointX) {
+        return this->end.u < rhs.end.u;
+
+    } else {
+        return this->crossingPointX < rhs.crossingPointX;
+    }
+}
+
+bool UvEdge::operator<=(const UvEdge& rhs) const
+{
+    if (this->crossingPointX == rhs.crossingPointX) {
+        return this->end.u <= rhs.end.u;
+
+    } else {
+        return this->crossingPointX <= rhs.crossingPointX;
+    }
 }
 
 bool UvEdge::isIntersected(UvEdge& otherEdge) {
@@ -114,4 +155,20 @@ float UvEdge::getTriangleArea(float& Ax, float& Ay, float& Bx, float& By, float&
 {
     float area = ((Ax * (By - Cy)) + (Bx * (Cy - Ay)) + (Cx * (Ay - By))) / (float)2.0;
     return area;
+}
+
+void UvEdge::setCrossingPointX(float Y)
+{
+    float& x1 = this->begin.u;
+    float& y1 = this->begin.v;
+    float& x2 = this->end.u;
+    float& y2 = this->end.v;
+
+    if (y2 == y1) {
+        this->crossingPointX = this->begin.u;
+    }
+    else {
+        float X = ((Y - y1) * (x2 - x1)) / (y2 - y1) + x1;
+        this->crossingPointX = X;
+    }
 }

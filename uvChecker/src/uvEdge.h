@@ -22,6 +22,12 @@ public:
     {
         return !(*this == rhs);
     }
+    bool operator>(const UvEdge& rhs) const;
+    bool operator>=(const UvEdge& rhs) const;
+    bool operator<(const UvEdge& rhs) const;
+    bool operator<=(const UvEdge& rhs) const;
+    
+    void setCrossingPointX(float Y);
 
     bool isIntersected(UvEdge& otherEdge);
     float getTriangleArea(float& x1,
@@ -32,6 +38,7 @@ public:
                           float& y3);
 
 private:
+    float crossingPointX;
 };
 
 #endif /* defined(__UVEDGE_H__) */

@@ -295,81 +295,135 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
 {
     std::unordered_set<UvEdge, hash_edge>::iterator iter;
 
-    std::deque<Event> testQueue;
+    std::deque<Event> eventQueue;
 
     int eventIndex = 0;
     for (iter = edges.begin(); iter != edges.end(); ++iter) {
         UvEdge edge = *iter;
         Event ev1("begin", edge.begin, edge, eventIndex);
-        testQueue.push_back(ev1);
+        eventQueue.push_back(ev1);
         eventIndex += 1;
         Event ev2("end", edge.end, edge, eventIndex);
-        testQueue.push_back(ev2);
+        eventQueue.push_back(ev2);
         eventIndex += 1;
     }
 
-    std::sort(testQueue.begin(), testQueue.end());
+    std::sort(eventQueue.begin(), eventQueue.end());
 
-    std::vector<UvEdge> status;
-    status.reserve(edges.size());
+    std::vector<UvEdge> statusQueue;
+    statusQueue.reserve(edges.size());
 
     int numStatus;
 
     while(true) {
-        if (testQueue.empty()) {
+        if (eventQueue.empty()) {
             break;
         }
-        Event firstEvent = testQueue.front();
+        Event firstEvent = eventQueue.front();
         UvEdge edge = firstEvent.edge;
-        testQueue.pop_front();
+        eventQueue.pop_front();
 
         if (firstEvent.status == "begin") {
-            status.push_back(edge);
-            numStatus = status.size();
+            numStatus = statusQueue.size();
+            statusQueue.push_back(edge);
+
+            // Update x values of intersection to the sweepline for all edges
+            // in the statusQueue
+            for (int i = 0; i < statusQueue.size(); i++) {
+                statusQueue[i].setCrossingPointX(firstEvent.v);
+            }
+            std::sort(statusQueue.begin(), statusQueue.end());
+
+            auto foundIter = std::find(statusQueue.begin(), statusQueue.end(), edge);
+            int index = std::distance(statusQueue.begin(), foundIter);
+            if (index == statusQueue.size()) {
+                // invalid
+            }
+            
+            UvEdge& currentEdge = statusQueue[index];
+
+            if (index == 0) {
+                // If first item, check the next edge
+                UvEdge& nextEdge = statusQueue[index+1];
+                if (currentEdge.isIntersected(nextEdge)) {
+                    resultSet.insert(currentEdge.index.first);
+                    resultSet.insert(currentEdge.index.second);
+                    resultSet.insert(nextEdge.index.first);
+                    resultSet.insert(nextEdge.index.second);
+                }
+            }
+            else if (index == statusQueue.size() - 1){
+                UvEdge& previousEdge = statusQueue[index-1];
+                if (currentEdge.isIntersected(previousEdge)) {
+                    resultSet.insert(currentEdge.index.first);
+                    resultSet.insert(currentEdge.index.second);
+                    resultSet.insert(previousEdge.index.first);
+                    resultSet.insert(previousEdge.index.second);
+                }
+            }
+            else {
+                UvEdge& nextEdge = statusQueue[index+1];
+                UvEdge& previousEdge = statusQueue[index-1];
+                
+                if (currentEdge.isIntersected(nextEdge)) {
+                    resultSet.insert(edge.index.first);
+                    resultSet.insert(edge.index.second);
+                    resultSet.insert(nextEdge.index.first);
+                    resultSet.insert(nextEdge.index.second);
+                }
+
+                if (currentEdge.isIntersected(previousEdge)) {
+                    resultSet.insert(edge.index.first);
+                    resultSet.insert(edge.index.second);
+                    resultSet.insert(previousEdge.index.first);
+                    resultSet.insert(previousEdge.index.second);
+                }
+            }
 
             if (numStatus == 1) {
                 continue;
             }
 
-            for (int i=0; i<numStatus; i++) {
-                UvEdge& thisEdge = status[i];
-                float& u1 = thisEdge.begin.u;
-                float& u2 = thisEdge.end.u;
-                for (int s=0; s<numStatus; s++) {
-                    if (i == s)
-                        continue;
-
-                    UvEdge& targetEdge = status[s];
-
-                    float u_small;
-                    float u_big;
-                    if (targetEdge.begin.u < targetEdge.end.u) {
-                        u_small = targetEdge.begin.u;
-                        u_big = targetEdge.end.u;
-                    } else {
-                        u_small = targetEdge.end.u;
-                        u_big = targetEdge.begin.u;
-                    }
-
-                    if ((u_small < u1 && u1 < u_big) || (u_small < u2 && u2 < u_big)) {
-                        if (thisEdge.isIntersected(targetEdge)) {
-                            resultSet.insert(thisEdge.index.first);
-                            resultSet.insert(thisEdge.index.second);
-                            resultSet.insert(targetEdge.index.first);
-                            resultSet.insert(targetEdge.index.second);
-                        }
-                    }
-                    else {
-                        // Do nothing
-                    }
-                }
-            }
         }
         else if (firstEvent.status == "end") {
-            auto found_itr = std::find(status.begin(), status.end(), edge);
-            status.erase(found_itr);
+            numStatus = statusQueue.size();
+
+            auto iter_for_removal = std::find(statusQueue.begin(), statusQueue.end(), edge);
+
+            int removeIndex = std::distance(statusQueue.begin(), iter_for_removal);
+            if (removeIndex == statusQueue.size()) {
+                // invalid
+            }
+
+            if (numStatus <= 2) {
+                // if num items are less than 2 in the countainer, do nothing
+            }
+            else if (removeIndex == 0) {
+                // if first item, do nothing
+
+            }
+            else if (removeIndex == numStatus-1) {
+                // if last item, do nothing
+            }
+            else {
+                // check previous and next edge intersection as they can be next
+                // each other after removing the current edge
+                UvEdge& nextEdge = statusQueue[removeIndex + 1];
+                UvEdge& previousEdge = statusQueue[removeIndex - 1];
+                if (previousEdge.isIntersected(nextEdge)) {
+                    resultSet.insert(nextEdge.index.first);
+                    resultSet.insert(nextEdge.index.second);
+                    resultSet.insert(previousEdge.index.first);
+                    resultSet.insert(previousEdge.index.second);
+                }
+            }
+
+            // Remove current edge from the statusQueue
+            statusQueue.erase(iter_for_removal);
         }
         else {
+            // cross
+            // will be impremented later
         }
     }
 
