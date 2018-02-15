@@ -25,7 +25,7 @@ public:
     static MSyntax newSyntax();
     MStatus check(std::unordered_set<UvEdge, hash_edge>& edges, std::unordered_set<int>& result);
     bool isShellOverlapped(UvShell& shellA, UvShell& shellB);
-    void makeCombinations(int N, std::vector<std::vector<int> >& vec);
+    void makeCombinations(size_t N, std::vector<std::vector<int> >& vec);
 
 private:
     bool verbose;
