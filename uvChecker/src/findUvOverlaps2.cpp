@@ -73,7 +73,7 @@ MStatus FindUvOverlaps2::doIt(const MArgList& args)
     MStringArray uvSetNames;
     bool uvSetFound;
     mFnMesh.getUVSetNames(uvSetNames);
-    for (int uv=0; uv<uvSetNames.length(); uv++) {
+    for (unsigned int uv=0; uv<uvSetNames.length(); uv++) {
         MString& uvSetName = uvSetNames[uv];
         if (uvSetName == uvSet)
             uvSetFound = true;
@@ -127,7 +127,7 @@ MStatus FindUvOverlaps2::redoIt()
     }
 
     // Get UV values and add them to the shell
-    for (unsigned int uvId = 0; uvId < numUVs; uvId++) {
+    for (int uvId = 0; uvId < numUVs; uvId++) {
         float u, v;
         mFnMesh.getUV(uvId, u, v, uvSetPtr);
         UvShell& currentShell = uvShellArray[uvShellIds[uvId]];
@@ -149,7 +149,7 @@ MStatus FindUvOverlaps2::redoIt()
     }
 
     // Loop all polygon faces and create edge objects
-    for (unsigned int faceId = 0; faceId < numPolygons; faceId++) {
+    for (int faceId = 0; faceId < numPolygons; faceId++) {
         int numPolygonVertices = mFnMesh.polygonVertexCount(faceId);
         for (int localVtx=0; localVtx<numPolygonVertices; localVtx++) {
             int curLocalIndex;
@@ -218,7 +218,7 @@ MStatus FindUvOverlaps2::redoIt()
     // Countainer for a set of shell indices that doesn't have be checked as single shell
     std::set<int> dontCheck;
 
-    int numShells = uvShellArray.size();
+    size_t numShells = uvShellArray.size();
 
     // Get combinations of shell indices eg. (0, 1), (0, 2), (1, 2),,,
     std::vector<std::vector<int>> shellCombinations;
@@ -313,7 +313,7 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
     std::vector<UvEdge> statusQueue;
     statusQueue.reserve(edges.size());
 
-    int numStatus;
+    size_t numStatus;
 
     while(true) {
         if (eventQueue.empty()) {
@@ -326,7 +326,6 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
         if (firstEvent.status == "begin") {
             numStatus = statusQueue.size();
             statusQueue.push_back(edge);
-
             // Update x values of intersection to the sweepline for all edges
             // in the statusQueue
             for (int i = 0; i < statusQueue.size(); i++) {
@@ -432,7 +431,7 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
 
 
 /* https://stackoverflow.com/questions/12991758/creating-all-possible-k-combinations-of-n-items-in-c */
-void FindUvOverlaps2::makeCombinations(int N, std::vector<std::vector<int>>& vec)
+void FindUvOverlaps2::makeCombinations(size_t N, std::vector<std::vector<int>>& vec)
 {
     std::string bitmask(2, 1); // K leading 1's
     bitmask.resize(N, 0); // N-K trailing 0's
