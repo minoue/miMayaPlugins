@@ -117,17 +117,61 @@ bool UvEdge::isIntersected(UvEdge& otherEdge) {
         otherEdge.end.v);
 
     if (area1 == 0.0 && area2 == 0.0) {
-        // If two edges are parallel on a same line
-        Vector v1 = this->begin - otherEdge.begin;
-        Vector v2 = this->end - otherEdge.begin;
-        float d1 = v1.dot(v2);
-        Vector v3 = this->begin - otherEdge.end;
-        Vector v4 = this->end - otherEdge.end;
-        float d2 = v3.dot(v4);
-        if (d1 >= 0.0 and d2 >= 0.0)
-            return false;
-        else
+        float u_min;
+        float u_max;
+        float v_min;
+        float v_max;
+
+        // Get u_min and u_max
+        if (otherEdge.begin.u > otherEdge.end.u) {
+            u_max = otherEdge.begin.u;
+            u_min = otherEdge.end.u;
+        }
+        else {
+            u_max = otherEdge.end.u;
+            u_min = otherEdge.begin.u;
+        }
+
+        // Get v_min and v_max
+        if (otherEdge.begin.v < otherEdge.end.v) {
+            v_min = otherEdge.begin.v;
+            v_max = otherEdge.end.v;
+        }
+        else {
+            v_min = otherEdge.end.v;
+            v_max = otherEdge.begin.v;
+        }
+
+        // If two lines are in vertical line
+        if (this->begin.u == this->end.u) {
+            if (v_min < this->begin.v && this->begin.v < v_max) {
+                return true;
+            } else if (v_min < this->end.v && this->end.v < v_max) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        if (u_min < this->begin.u && this->begin.u < u_max) {
             return true;
+        } else if (u_min < this->end.u && this->end.u < u_max) {
+            return true;
+        } else {
+            return false;
+        }
+
+        // If two edges are parallel on a same line
+        // Vector v1 = this->begin - otherEdge.begin;
+        // Vector v2 = this->end - otherEdge.begin;
+        // float d1 = v1.dot(v2);
+        // Vector v3 = this->begin - otherEdge.end;
+        // Vector v4 = this->end - otherEdge.end;
+        // float d2 = v3.dot(v4);
+        // if (d1 > 0.0 && d2 > 0.0)
+        //     return true;
+        // else
+        //     return false;
     }
     
     float ccw1;
