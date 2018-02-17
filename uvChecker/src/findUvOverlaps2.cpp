@@ -71,14 +71,19 @@ MStatus FindUvOverlaps2::doIt(const MArgList& args)
 
     // Check if specified uv set exists
     MStringArray uvSetNames;
-    bool uvSetFound;
+    bool uvSetFound = false;
     mFnMesh.getUVSetNames(uvSetNames);
     for (unsigned int uv=0; uv<uvSetNames.length(); uv++) {
         MString& uvSetName = uvSetNames[uv];
-        if (uvSetName == uvSet)
+        if (uvSetName == uvSet) {
             uvSetFound = true;
-        else
-            uvSetFound = false;
+            uvSet = uvSetName;
+            break;
+        }
+    }
+    if (!uvSetFound) {
+        MGlobal::displayError("UV set not found");
+        return MS::kFailure;
     }
 
     if (uvSetFound == false) {
