@@ -319,6 +319,9 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
     statusQueue.reserve(edges.size());
 
     size_t numStatus;
+    
+    float intersectU;
+    float intersectV;
 
     while(true) {
         if (eventQueue.empty()) {
@@ -329,8 +332,14 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
         eventQueue.pop_front();
 
         if (firstEvent.status == "begin") {
-            numStatus = statusQueue.size();
             statusQueue.push_back(edge);
+            
+            // if there are no edges to compare
+            numStatus = statusQueue.size();
+            if (numStatus == 1) {
+                continue;
+            }
+            
             // Update x values of intersection to the sweepline for all edges
             // in the statusQueue
             for (int i = 0; i < statusQueue.size(); i++) {
@@ -345,11 +354,12 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
             }
             
             UvEdge& currentEdge = statusQueue[index];
+            
 
             if (index == 0) {
                 // If first item, check the next edge
                 UvEdge& nextEdge = statusQueue[index+1];
-                if (currentEdge.isIntersected(nextEdge)) {
+                if (currentEdge.isIntersected(nextEdge, intersectU, intersectV)) {
                     resultSet.insert(currentEdge.index.first);
                     resultSet.insert(currentEdge.index.second);
                     resultSet.insert(nextEdge.index.first);
@@ -358,7 +368,7 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
             }
             else if (index == statusQueue.size() - 1){
                 UvEdge& previousEdge = statusQueue[index-1];
-                if (currentEdge.isIntersected(previousEdge)) {
+                if (currentEdge.isIntersected(previousEdge, intersectU, intersectV)) {
                     resultSet.insert(currentEdge.index.first);
                     resultSet.insert(currentEdge.index.second);
                     resultSet.insert(previousEdge.index.first);
@@ -369,14 +379,14 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
                 UvEdge& nextEdge = statusQueue[index+1];
                 UvEdge& previousEdge = statusQueue[index-1];
                 
-                if (currentEdge.isIntersected(nextEdge)) {
+                if (currentEdge.isIntersected(nextEdge, intersectU, intersectV)) {
                     resultSet.insert(edge.index.first);
                     resultSet.insert(edge.index.second);
                     resultSet.insert(nextEdge.index.first);
                     resultSet.insert(nextEdge.index.second);
                 }
 
-                if (currentEdge.isIntersected(previousEdge)) {
+                if (currentEdge.isIntersected(previousEdge, intersectU, intersectV)) {
                     resultSet.insert(edge.index.first);
                     resultSet.insert(edge.index.second);
                     resultSet.insert(previousEdge.index.first);
@@ -384,9 +394,6 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
                 }
             }
 
-            if (numStatus == 1) {
-                continue;
-            }
 
         }
         else if (firstEvent.status == "end") {
@@ -414,7 +421,7 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
                 // each other after removing the current edge
                 UvEdge& nextEdge = statusQueue[removeIndex + 1];
                 UvEdge& previousEdge = statusQueue[removeIndex - 1];
-                if (previousEdge.isIntersected(nextEdge)) {
+                if (previousEdge.isIntersected(nextEdge, intersectU, intersectV)) {
                     resultSet.insert(nextEdge.index.first);
                     resultSet.insert(nextEdge.index.second);
                     resultSet.insert(previousEdge.index.first);

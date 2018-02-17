@@ -66,7 +66,7 @@ bool UvEdge::operator<=(const UvEdge& rhs) const
     }
 }
 
-bool UvEdge::isIntersected(UvEdge& otherEdge) {
+bool UvEdge::isIntersected(UvEdge& otherEdge, float& u, float& v) {
     
     // Check edge index if they have shared UV index
     bool isConnected;
@@ -154,10 +154,14 @@ bool UvEdge::isIntersected(UvEdge& otherEdge) {
         }
 
         if (u_min < this->begin.u && this->begin.u < u_max) {
+            // parallel edges overlaps
             return true;
-        } else if (u_min < this->end.u && this->end.u < u_max) {
+        }
+        else if (u_min < this->end.u && this->end.u < u_max) {
+            // parallel edges overlaps
             return true;
-        } else {
+        }
+        else {
             return false;
         }
 
@@ -188,6 +192,34 @@ bool UvEdge::isIntersected(UvEdge& otherEdge) {
     }
     
     if (ccw1 < 0 && ccw2 < 0) {
+        // if two non-connected edges intersect, get intersection point values
+        
+        // for this edge
+        float slopeA = (this->end.v - this->begin.v) / (this->end.u - this->begin.u);
+        float y_interceptA = this->begin.v - (slopeA * this->begin.u);
+        
+        // for otherEdge
+        float slopeB = (otherEdge.end.v - otherEdge.begin.v) / (otherEdge.end.u - otherEdge.begin.u);
+        float y_interceptB = otherEdge.begin.v - (slopeB * otherEdge.begin.u);
+        
+        // [ -slopeA 1 ] [x] = [ y_interceptA ]
+        // [ -slopeB 1 ] [y]   [ y_interceptB ]
+        // Get inverse matrix
+        
+        // Negate slope values
+        slopeA = -1.0 * slopeA;
+        slopeB = -1.0 * slopeB;
+        float adbc = slopeA - slopeB;
+        float a = 1.0 * (1 / adbc);
+        float b = -slopeB * (1 / adbc);
+        float c = -1.0 * (1 / adbc);
+        float d = slopeA * (1 / adbc);
+        
+        // [u] = [ a c ] [y_interceptA]
+        // [v]   [ b d ] [y_interceptB]
+        u = (a * y_interceptA) + (c * y_interceptB);
+        v = (b * y_interceptA) + (d * y_interceptB);
+        
         return true;
     }
     else
