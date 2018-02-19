@@ -3,7 +3,6 @@
 
 #include "vector.h"
 
-
 class UvPoint {
 public:
     UvPoint();

@@ -1,7 +1,7 @@
 #include "uvEdge.h"
+#include <float.h>
 #include <iostream>
 #include <math.h>
-#include <float.h>
 #include <maya/MGlobal.h>
 
 UvEdge::UvEdge()
@@ -66,8 +66,9 @@ bool UvEdge::operator<=(const UvEdge& rhs) const
     }
 }
 
-bool UvEdge::isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& v) {
-    
+bool UvEdge::isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& v)
+{
+
     // Check edge index if they have shared UV index
     bool isConnected;
     int& this_index_A = this->index.first;
@@ -76,14 +77,12 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& 
     int& other_index_B = otherEdge.index.second;
     if (this_index_A == other_index_A || this_index_A == other_index_B) {
         isConnected = true;
-    }
-    else if (this_index_B == other_index_A || this_index_B == other_index_B) {
+    } else if (this_index_B == other_index_A || this_index_B == other_index_B) {
         isConnected = true;
-    }
-    else {
+    } else {
         isConnected = false;
     }
-    
+
     float area1 = getTriangleArea(
         this->begin.u,
         this->begin.v,
@@ -127,8 +126,7 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& 
         if (otherEdge.begin.u > otherEdge.end.u) {
             u_max = otherEdge.begin.u;
             u_min = otherEdge.end.u;
-        }
-        else {
+        } else {
             u_max = otherEdge.end.u;
             u_min = otherEdge.begin.u;
         }
@@ -137,8 +135,7 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& 
         if (otherEdge.begin.v < otherEdge.end.v) {
             v_min = otherEdge.begin.v;
             v_max = otherEdge.end.v;
-        }
-        else {
+        } else {
             v_min = otherEdge.end.v;
             v_max = otherEdge.begin.v;
         }
@@ -157,12 +154,10 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& 
         if (u_min < this->begin.u && this->begin.u < u_max) {
             // parallel edges overlaps
             return true;
-        }
-        else if (u_min < this->end.u && this->end.u < u_max) {
+        } else if (u_min < this->end.u && this->end.u < u_max) {
             // parallel edges overlaps
             return true;
-        }
-        else {
+        } else {
             return false;
         }
 
@@ -178,7 +173,7 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& 
         // else
         //     return false;
     }
-    
+
     float ccw1;
     float ccw2;
     // If two edges are connected, at least 2 area of 4 triangles should be 0,
@@ -186,27 +181,26 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& 
     if (isConnected) {
         ccw1 = 0;
         ccw2 = 0;
-    }
-    else {
+    } else {
         ccw1 = area1 * area2;
         ccw2 = area3 * area4;
     }
-    
+
     if (ccw1 < 0 && ccw2 < 0) {
         // if two non-connected edges intersect, get intersection point values
-        
+
         // for this edge
         float slopeA = (this->end.v - this->begin.v) / (this->end.u - this->begin.u);
         float y_interceptA = this->begin.v - (slopeA * this->begin.u);
-        
+
         // for otherEdge
         float slopeB = (otherEdge.end.v - otherEdge.begin.v) / (otherEdge.end.u - otherEdge.begin.u);
         float y_interceptB = otherEdge.begin.v - (slopeB * otherEdge.begin.u);
-        
+
         // [ -slopeA 1 ] [x] = [ y_interceptA ]
         // [ -slopeB 1 ] [y]   [ y_interceptB ]
         // Get inverse matrix
-        
+
         // Negate slope values
         slopeA = -1.0 * slopeA;
         slopeB = -1.0 * slopeB;
@@ -215,17 +209,15 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& 
         float b = -slopeB * (1 / adbc);
         float c = -1.0 * (1 / adbc);
         float d = slopeA * (1 / adbc);
-        
+
         // [u] = [ a c ] [y_interceptA]
         // [v]   [ b d ] [y_interceptB]
         u = (a * y_interceptA) + (c * y_interceptB);
         v = (b * y_interceptA) + (d * y_interceptB);
-        
-        return true;
-    }
-    else
-        return false;
 
+        return true;
+    } else
+        return false;
 }
 
 float UvEdge::getTriangleArea(float& Ax, float& Ay, float& Bx, float& By, float& Cx, float& Cy)
@@ -243,8 +235,7 @@ void UvEdge::setCrossingPointX(float Y)
 
     if (y2 == y1) {
         this->crossingPointX = this->begin.u;
-    }
-    else {
+    } else {
         float X = ((Y - y1) * (x2 - x1)) / (y2 - y1) + x1;
         this->crossingPointX = X;
     }

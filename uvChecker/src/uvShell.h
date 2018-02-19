@@ -1,19 +1,18 @@
 #ifndef __UVSHELL__
 #define __UVSHELL__
 
+#include "uvEdge.h"
 #include "uvPoint.h"
+#include <set>
 #include <unordered_set>
 #include <vector>
-#include "uvEdge.h"
-#include <set>
 
-
-struct hash_edge{
-    size_t operator()(const UvEdge& edge) const{
+struct hash_edge {
+    size_t operator()(const UvEdge& edge) const
+    {
         return std::hash<int>()(edge.beginIndex) ^ std::hash<int>()(edge.endIndex);
     }
 };
-
 
 class UvShell {
 public:

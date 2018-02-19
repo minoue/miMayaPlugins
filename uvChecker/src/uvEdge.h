@@ -4,7 +4,6 @@
 #include "uvPoint.h"
 #include <utility>
 
-
 class UvEdge {
 public:
     UvEdge();
@@ -26,16 +25,16 @@ public:
     bool operator>=(const UvEdge& rhs) const;
     bool operator<(const UvEdge& rhs) const;
     bool operator<=(const UvEdge& rhs) const;
-    
+
     void setCrossingPointX(float Y);
 
     bool isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& v);
     float getTriangleArea(float& x1,
-                          float& y1,
-                          float& x2,
-                          float& y2,
-                          float& x3,
-                          float& y3);
+        float& y1,
+        float& x2,
+        float& y2,
+        float& x3,
+        float& y3);
 
 private:
     float crossingPointX;

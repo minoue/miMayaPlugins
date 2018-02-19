@@ -1,17 +1,16 @@
 #ifndef __FINDUVOVERLAPS2_H__
 #define __FINDUVOVERLAPS2_H__
 
-#include <maya/MPxCommand.h>
-#include <maya/MSyntax.h>
 #include <maya/MDagPath.h>
 #include <maya/MFnMesh.h>
+#include <maya/MPxCommand.h>
 #include <maya/MString.h>
+#include <maya/MSyntax.h>
 
-#include <set>
-#include <unordered_set>
 #include "uvEdge.h"
 #include "uvShell.h"
-
+#include <set>
+#include <unordered_set>
 
 class FindUvOverlaps2 : public MPxCommand {
 public:
@@ -25,7 +24,7 @@ public:
     static MSyntax newSyntax();
     MStatus check(std::unordered_set<UvEdge, hash_edge>& edges, std::unordered_set<int>& result);
     bool isShellOverlapped(UvShell& shellA, UvShell& shellB);
-    void makeCombinations(size_t N, std::vector<std::vector<int> >& vec);
+    void makeCombinations(size_t N, std::vector<std::vector<int>>& vec);
 
 private:
     bool verbose;

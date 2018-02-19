@@ -1,7 +1,6 @@
 #ifndef __VECTOR2D__
 #define __VECTOR2D__
 
-
 class Vector {
 public:
     Vector();

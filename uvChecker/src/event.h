@@ -1,9 +1,9 @@
 #ifndef __UVEVENT__
 #define __UVEVENT__
 
-#include <string>
-#include "uvPoint.h"
 #include "uvEdge.h"
+#include "uvPoint.h"
+#include <string>
 
 class Event {
 public:

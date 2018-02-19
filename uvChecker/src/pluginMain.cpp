@@ -1,6 +1,6 @@
-#include "uvChecker.h"
 #include "findUvOverlaps.h"
 #include "findUvOverlaps2.h"
+#include "uvChecker.h"
 #include <maya/MFnPlugin.h>
 
 MStatus initializePlugin(MObject mObj)

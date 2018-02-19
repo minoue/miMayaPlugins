@@ -1,7 +1,6 @@
 #include "uvPoint.h"
 #include "vector.h"
 
-
 UvPoint::UvPoint()
 {
 }
