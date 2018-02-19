@@ -66,7 +66,7 @@ bool UvEdge::operator<=(const UvEdge& rhs) const
     }
 }
 
-bool UvEdge::isIntersected(UvEdge& otherEdge, float& u, float& v) {
+bool UvEdge::isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& v) {
     
     // Check edge index if they have shared UV index
     bool isConnected;
@@ -117,6 +117,7 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, float& u, float& v) {
         otherEdge.end.v);
 
     if (area1 == 0.0 && area2 == 0.0) {
+        isParallel = true;
         float u_min;
         float u_max;
         float v_min;

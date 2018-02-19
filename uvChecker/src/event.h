@@ -8,12 +8,14 @@
 class Event {
 public:
     Event();
-    Event(std::string status, UvPoint point, UvEdge edge, int index);
+    Event(std::string status, UvPoint point, UvEdge& edge, int index);
+    Event(std::string status, float u, float v, UvEdge& edge, UvEdge& otherEdge);
     ~Event();
 
     std::string status;
     UvPoint point;
     UvEdge edge;
+    UvEdge otherEdge;
     int index;
 
     float u;

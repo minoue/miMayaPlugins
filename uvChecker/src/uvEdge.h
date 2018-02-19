@@ -29,7 +29,7 @@ public:
     
     void setCrossingPointX(float Y);
 
-    bool isIntersected(UvEdge& otherEdge, float& u, float& v);
+    bool isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& v);
     float getTriangleArea(float& x1,
                           float& y1,
                           float& x2,

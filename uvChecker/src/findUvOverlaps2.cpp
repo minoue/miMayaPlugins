@@ -322,6 +322,7 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
     
     float intersectU;
     float intersectV;
+    bool isParallel = false;
 
     while(true) {
         if (eventQueue.empty()) {
@@ -330,6 +331,7 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
         Event firstEvent = eventQueue.front();
         UvEdge edge = firstEvent.edge;
         eventQueue.pop_front();
+        
 
         if (firstEvent.status == "begin") {
             statusQueue.push_back(edge);
@@ -354,43 +356,54 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
             }
             
             UvEdge& currentEdge = statusQueue[index];
-            
 
             if (index == 0) {
                 // If first item, check the next edge
                 UvEdge& nextEdge = statusQueue[index+1];
-                if (currentEdge.isIntersected(nextEdge, intersectU, intersectV)) {
-                    resultSet.insert(currentEdge.index.first);
-                    resultSet.insert(currentEdge.index.second);
-                    resultSet.insert(nextEdge.index.first);
-                    resultSet.insert(nextEdge.index.second);
+                if (currentEdge.isIntersected(nextEdge, isParallel, intersectU, intersectV)) {
+                    int ids[] = {currentEdge.index.first, currentEdge.index.second, nextEdge.index.first, nextEdge.index.second};
+                    resultSet.insert(ids, std::end(ids));
+                    if (isParallel == true) {
+                        Event crossEvent("intersect", intersectU, intersectV, currentEdge, nextEdge);
+                        eventQueue.push_back(crossEvent);
+                        std::sort(eventQueue.begin(), eventQueue.end());
+                    }
                 }
             }
             else if (index == statusQueue.size() - 1){
+                // if last iten in the statusQueue
                 UvEdge& previousEdge = statusQueue[index-1];
-                if (currentEdge.isIntersected(previousEdge, intersectU, intersectV)) {
-                    resultSet.insert(currentEdge.index.first);
-                    resultSet.insert(currentEdge.index.second);
-                    resultSet.insert(previousEdge.index.first);
-                    resultSet.insert(previousEdge.index.second);
+                if (currentEdge.isIntersected(previousEdge, isParallel, intersectU, intersectV)) {
+                    int ids[] = {currentEdge.index.first, currentEdge.index.second, previousEdge.index.first, previousEdge.index.second};
+                    resultSet.insert(ids, std::end(ids));
+                    if (isParallel == true) {
+                        Event crossEvent("intersect", intersectU, intersectV, currentEdge, previousEdge);
+                        eventQueue.push_back(crossEvent);
+                        std::sort(eventQueue.begin(), eventQueue.end());
+                    }
                 }
             }
             else {
                 UvEdge& nextEdge = statusQueue[index+1];
                 UvEdge& previousEdge = statusQueue[index-1];
                 
-                if (currentEdge.isIntersected(nextEdge, intersectU, intersectV)) {
-                    resultSet.insert(edge.index.first);
-                    resultSet.insert(edge.index.second);
-                    resultSet.insert(nextEdge.index.first);
-                    resultSet.insert(nextEdge.index.second);
+                if (currentEdge.isIntersected(nextEdge, isParallel, intersectU, intersectV)) {
+                    int ids[] = {currentEdge.index.first, currentEdge.index.second, nextEdge.index.first, nextEdge.index.second};
+                    resultSet.insert(ids, std::end(ids));
+                    if (isParallel == true) {
+                        Event crossEvent("intersect", intersectU, intersectV, currentEdge, nextEdge);
+                        eventQueue.push_back(crossEvent);
+                        std::sort(eventQueue.begin(), eventQueue.end());
+                    }
                 }
-
-                if (currentEdge.isIntersected(previousEdge, intersectU, intersectV)) {
-                    resultSet.insert(edge.index.first);
-                    resultSet.insert(edge.index.second);
-                    resultSet.insert(previousEdge.index.first);
-                    resultSet.insert(previousEdge.index.second);
+                if (currentEdge.isIntersected(previousEdge, isParallel, intersectU, intersectV)) {
+                    int ids[] = {currentEdge.index.first, currentEdge.index.second, previousEdge.index.first, previousEdge.index.second};
+                    resultSet.insert(ids, std::end(ids));
+                    if (isParallel == true) {
+                        Event crossEvent("intersect", intersectU, intersectV, currentEdge, previousEdge);
+                        eventQueue.push_back(crossEvent);
+                        std::sort(eventQueue.begin(), eventQueue.end());
+                    }
                 }
             }
 
@@ -421,20 +434,73 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
                 // each other after removing the current edge
                 UvEdge& nextEdge = statusQueue[removeIndex + 1];
                 UvEdge& previousEdge = statusQueue[removeIndex - 1];
-                if (previousEdge.isIntersected(nextEdge, intersectU, intersectV)) {
-                    resultSet.insert(nextEdge.index.first);
-                    resultSet.insert(nextEdge.index.second);
-                    resultSet.insert(previousEdge.index.first);
-                    resultSet.insert(previousEdge.index.second);
+                if (previousEdge.isIntersected(nextEdge, isParallel, intersectU, intersectV)) {
+                    int ids[] = {nextEdge.index.first, nextEdge.index.second, previousEdge.index.first, previousEdge.index.second};
+                    resultSet.insert(ids, std::end(ids));
+                    if (isParallel == true) {
+                        Event crossEvent("intersect", intersectU, intersectV, previousEdge, nextEdge);
+                        eventQueue.push_back(crossEvent);
+                        std::sort(eventQueue.begin(), eventQueue.end());
+                    }
                 }
             }
 
             // Remove current edge from the statusQueue
             statusQueue.erase(iter_for_removal);
         }
-        else {
-            // cross
-            // will be impremented later
+        else if (firstEvent.status == "intersect") {
+            MGlobal::displayInfo("asdfasdf");
+            // intersect
+            if (statusQueue.size() <= 2) {
+                continue;
+            }
+            
+            UvEdge& thisEdge = firstEvent.edge;
+            UvEdge& otherEdge = firstEvent.otherEdge;
+            auto thisEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), thisEdge);
+            auto otherEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), otherEdge);
+            int thisIndex = std::distance(statusQueue.begin(), thisEdgeIter);
+            int otherIndex = std::distance(statusQueue.begin(), otherEdgeIter);
+            int small;
+            int big;
+            if (thisIndex > otherIndex) {
+                small = otherIndex;
+                big = thisIndex;
+            }
+            else {
+                small = thisIndex;
+                big = otherIndex;
+            }
+            
+            if (small == 0) {
+                UvEdge& firstEdge = statusQueue[small];
+                UvEdge& secondEdge = statusQueue[big+1];
+                if (firstEdge.isIntersected(secondEdge, isParallel, intersectU, intersectV)) {
+                }
+            }
+            else if (big == statusQueue.size()-1) {
+                UvEdge& firstEdge = statusQueue[small-1];
+                UvEdge& secondEdge = statusQueue[big];
+                if (firstEdge.isIntersected(secondEdge, isParallel, intersectU, intersectV)) {
+                }
+            }
+            else {
+                UvEdge& firstEdge = statusQueue[small-1];
+                UvEdge& secondEdge = statusQueue[small];
+                UvEdge& thirdEdge = statusQueue[big];
+                UvEdge& forthEdge = statusQueue[big+1];
+                
+                if (firstEdge.isIntersected(thirdEdge, isParallel, intersectU, intersectV)) {
+                    int ids[] = {firstEdge.index.first, firstEdge.index.second, secondEdge.index.first, secondEdge.index.second};
+                    resultSet.insert(ids, std::end(ids));
+                }
+                
+                if (secondEdge.isIntersected(forthEdge, isParallel, intersectU, intersectV)) {
+                    int ids[] = {secondEdge.index.first, secondEdge.index.second, forthEdge.index.first, forthEdge.index.second};
+                    resultSet.insert(ids, std::end(ids));
+                    
+                }
+            }
         }
     }
 
