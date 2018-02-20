@@ -202,13 +202,13 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool isParallel, float& u, float& 
         // Get inverse matrix
 
         // Negate slope values
-        slopeA = -1.0 * slopeA;
-        slopeB = -1.0 * slopeB;
+        slopeA = -1.0F * slopeA;
+        slopeB = -1.0F * slopeB;
         float adbc = slopeA - slopeB;
-        float a = 1.0 * (1 / adbc);
-        float b = -slopeB * (1 / adbc);
-        float c = -1.0 * (1 / adbc);
-        float d = slopeA * (1 / adbc);
+        float a = 1.0F * (1.0F / adbc);
+        float b = -slopeB * (1.0F / adbc);
+        float c = -1.0F * (1.0F / adbc);
+        float d = slopeA * (1.0F / adbc);
 
         // [u] = [ a c ] [y_interceptA]
         // [v]   [ b d ] [y_interceptB]
