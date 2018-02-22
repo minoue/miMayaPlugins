@@ -8,7 +8,7 @@ UvEdge::UvEdge()
 {
 }
 
-UvEdge::UvEdge(UvPoint beginPt, UvPoint endPt, std::pair<int, int> index)
+UvEdge::UvEdge(UvPoint beginPt, UvPoint endPt, int index)
 {
     this->begin = beginPt;
     this->end = endPt;
@@ -71,10 +71,10 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool& isParallel, float& u, float&
 
     // Check edge index if they have shared UV index
     bool isConnected;
-    int& this_index_A = this->index.first;
-    int& this_index_B = this->index.second;
-    int& other_index_A = otherEdge.index.first;
-    int& other_index_B = otherEdge.index.second;
+    int& this_index_A = this->beginIndex;
+    int& this_index_B = this->endIndex;
+    int& other_index_A = otherEdge.beginIndex;
+    int& other_index_B = otherEdge.endIndex;
     if (this_index_A == other_index_A || this_index_A == other_index_B) {
         isConnected = true;
     } else if (this_index_B == other_index_A || this_index_B == other_index_B) {

@@ -182,11 +182,18 @@ MStatus FindUvOverlaps2::redoIt()
 
             int currentShellIndex = uvShellIds[uvIdA];
 
-            std::pair<int, int> edgeIndex;
-            if (uvIdA < uvIdB)
-                edgeIndex = std::make_pair(uvIdA, uvIdB);
-            else
-                edgeIndex = std::make_pair(uvIdB, uvIdA);
+            // Create edge index from two point index
+            // eg. obj1 (1), p1(0), p2(25) will make edge index of 1025
+            std::string uvIdSmallStr;
+            std::string uvIdBigStr;
+            if (uvIdA < uvIdB) {
+                uvIdSmallStr = std::to_string(uvIdA);
+                uvIdBigStr = std::to_string(uvIdB);
+            } else {
+                uvIdSmallStr = std::to_string(uvIdB);
+                uvIdBigStr = std::to_string(uvIdA);
+            }
+            int edgeIndex = std::stoi("1"+uvIdSmallStr+uvIdBigStr);
 
             // Get UV values and create edge objects
             float u_current, v_current;
@@ -341,7 +348,7 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
             }
             std::sort(statusQueue.begin(), statusQueue.end());
 
-            auto foundIter = std::find(statusQueue.begin(), statusQueue.end(), edge);
+            std::vector<UvEdge>::iterator foundIter = std::find(statusQueue.begin(), statusQueue.end(), edge);
             int index = std::distance(statusQueue.begin(), foundIter);
             if (index == statusQueue.size()) {
                 // invalid
@@ -353,9 +360,9 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
                 // If first item, check the next edge
                 UvEdge& nextEdge = statusQueue[index + 1];
                 if (currentEdge.isIntersected(nextEdge, isParallel, intersectU, intersectV)) {
-                    int ids[] = { currentEdge.index.first, currentEdge.index.second, nextEdge.index.first, nextEdge.index.second };
+                    int ids[] = { currentEdge.beginIndex, currentEdge.endIndex, nextEdge.beginIndex, nextEdge.endIndex };
                     resultSet.insert(ids, ids+4);
-                    if (isParallel == true) {
+                    if (isParallel == false) {
                         Event crossEvent("intersect", intersectU, intersectV, currentEdge, nextEdge);
                         eventQueue.push_back(crossEvent);
                         std::sort(eventQueue.begin(), eventQueue.end());
@@ -365,9 +372,9 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
                 // if last iten in the statusQueue
                 UvEdge& previousEdge = statusQueue[index - 1];
                 if (currentEdge.isIntersected(previousEdge, isParallel, intersectU, intersectV)) {
-                    int ids[] = { currentEdge.index.first, currentEdge.index.second, previousEdge.index.first, previousEdge.index.second };
+                    int ids[] = { currentEdge.beginIndex, currentEdge.endIndex, previousEdge.beginIndex, previousEdge.endIndex };
                     resultSet.insert(ids, ids+4);
-                    if (isParallel == true) {
+                    if (isParallel == false) {
                         Event crossEvent("intersect", intersectU, intersectV, currentEdge, previousEdge);
                         eventQueue.push_back(crossEvent);
                         std::sort(eventQueue.begin(), eventQueue.end());
@@ -378,18 +385,18 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
                 UvEdge& previousEdge = statusQueue[index - 1];
 
                 if (currentEdge.isIntersected(nextEdge, isParallel, intersectU, intersectV)) {
-                    int ids[] = { currentEdge.index.first, currentEdge.index.second, nextEdge.index.first, nextEdge.index.second };
+                    int ids[] = { currentEdge.beginIndex, currentEdge.endIndex, nextEdge.beginIndex, nextEdge.endIndex };
                     resultSet.insert(ids, ids+4);
-                    if (isParallel == true) {
+                    if (isParallel == false) {
                         Event crossEvent("intersect", intersectU, intersectV, currentEdge, nextEdge);
                         eventQueue.push_back(crossEvent);
                         std::sort(eventQueue.begin(), eventQueue.end());
                     }
                 }
                 if (currentEdge.isIntersected(previousEdge, isParallel, intersectU, intersectV)) {
-                    int ids[] = { currentEdge.index.first, currentEdge.index.second, previousEdge.index.first, previousEdge.index.second };
+                    int ids[] = { currentEdge.beginIndex, currentEdge.endIndex, previousEdge.beginIndex, previousEdge.endIndex };
                     resultSet.insert(ids, ids+4);
-                    if (isParallel == true) {
+                    if (isParallel == false) {
                         Event crossEvent("intersect", intersectU, intersectV, currentEdge, previousEdge);
                         eventQueue.push_back(crossEvent);
                         std::sort(eventQueue.begin(), eventQueue.end());
@@ -400,11 +407,18 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
         } else if (firstEvent.status == "end") {
             numStatus = statusQueue.size();
 
-            auto iter_for_removal = std::find(statusQueue.begin(), statusQueue.end(), edge);
+            std::vector<UvEdge>::iterator iter_for_removal = std::find(statusQueue.begin(), statusQueue.end(), edge);
+            if (iter_for_removal == statusQueue.end()) {
+                MGlobal::displayInfo("error");
+                // if iter not found
+                return MS::kFailure;
+            }
 
             int removeIndex = std::distance(statusQueue.begin(), iter_for_removal);
             if (removeIndex == statusQueue.size()) {
+                MGlobal::displayInfo("error");
                 // invalid
+                return MS::kFailure;
             }
 
             if (numStatus <= 2) {
@@ -420,9 +434,9 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
                 UvEdge& nextEdge = statusQueue[removeIndex + 1];
                 UvEdge& previousEdge = statusQueue[removeIndex - 1];
                 if (previousEdge.isIntersected(nextEdge, isParallel, intersectU, intersectV)) {
-                    int ids[] = { nextEdge.index.first, nextEdge.index.second, previousEdge.index.first, previousEdge.index.second };
+                    int ids[] = { nextEdge.beginIndex, nextEdge.endIndex, previousEdge.beginIndex, previousEdge.endIndex };
                     resultSet.insert(ids, ids+4);
-                    if (isParallel == true) {
+                    if (isParallel == false) {
                         Event crossEvent("intersect", intersectU, intersectV, previousEdge, nextEdge);
                         eventQueue.push_back(crossEvent);
                         std::sort(eventQueue.begin(), eventQueue.end());
@@ -441,8 +455,8 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
 
             UvEdge& thisEdge = firstEvent.edge;
             UvEdge& otherEdge = firstEvent.otherEdge;
-            auto thisEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), thisEdge);
-            auto otherEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), otherEdge);
+            std::vector<UvEdge>::iterator thisEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), thisEdge);
+            std::vector<UvEdge>::iterator otherEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), otherEdge);
             int thisIndex = std::distance(statusQueue.begin(), thisEdgeIter);
             int otherIndex = std::distance(statusQueue.begin(), otherEdgeIter);
             int small;
@@ -472,12 +486,12 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
                 UvEdge& forthEdge = statusQueue[big + 1];
 
                 if (firstEdge.isIntersected(thirdEdge, isParallel, intersectU, intersectV)) {
-                    int ids[] = { firstEdge.index.first, firstEdge.index.second, secondEdge.index.first, secondEdge.index.second };
+                    int ids[] = { firstEdge.beginIndex, firstEdge.endIndex, secondEdge.beginIndex, secondEdge.endIndex };
                     resultSet.insert(ids, ids+4);
                 }
 
                 if (secondEdge.isIntersected(forthEdge, isParallel, intersectU, intersectV)) {
-                    int ids[] = { secondEdge.index.first, secondEdge.index.second, forthEdge.index.first, forthEdge.index.second };
+                    int ids[] = { secondEdge.beginIndex, secondEdge.endIndex, forthEdge.beginIndex, forthEdge.endIndex };
                     resultSet.insert(ids, ids+4);
                 }
             }
