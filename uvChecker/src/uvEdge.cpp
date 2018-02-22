@@ -8,7 +8,7 @@ UvEdge::UvEdge()
 {
 }
 
-UvEdge::UvEdge(UvPoint beginPt, UvPoint endPt, int index)
+UvEdge::UvEdge(UvPoint beginPt, UvPoint endPt, long index)
 {
     this->begin = beginPt;
     this->end = endPt;
