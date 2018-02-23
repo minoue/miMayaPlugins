@@ -16,6 +16,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <sstream>
 
 FindUvOverlaps2::FindUvOverlaps2()
 {
@@ -182,14 +183,18 @@ MStatus FindUvOverlaps2::redoIt()
             // eg. obj1 (1), p1(0), p2(25) will make edge index of 1025
             std::string uvIdSmallStr;
             std::string uvIdBigStr;
+
+            MString idA;
+            MString idB;
             if (uvIdA < uvIdB) {
-                uvIdSmallStr = std::to_string(uvIdA);
-                uvIdBigStr = std::to_string(uvIdB);
+                idA.set(uvIdA);
+                idB.set(uvIdB);
             } else {
-                uvIdSmallStr = std::to_string(uvIdB);
-                uvIdBigStr = std::to_string(uvIdA);
+                idA.set(uvIdB);
+                idB.set(uvIdA);
             }
-            int edgeIndex = std::stol("1" + uvIdSmallStr + uvIdBigStr);
+            // MString edgeIndexStr = idA + idB;
+            unsigned int edgeIndex = ( idA + idB ).asUnsigned();
 
             // Get UV values and create edge objects
             float u_current, v_current;
@@ -327,8 +332,8 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
         if (eventQueue.empty()) {
             break;
         }
-        Event& firstEvent = eventQueue.front();
-        UvEdge& edge = firstEvent.edge;
+        Event firstEvent = eventQueue.front();
+        UvEdge edge = firstEvent.edge;
         eventQueue.pop_front();
 
         if (firstEvent.status == "begin") {
@@ -348,7 +353,7 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
             std::sort(statusQueue.begin(), statusQueue.end());
 
             std::vector<UvEdge>::iterator foundIter = std::find(statusQueue.begin(), statusQueue.end(), edge);
-            int index = std::distance(statusQueue.begin(), foundIter);
+            int index = (int)std::distance(statusQueue.begin(), foundIter);
             if (index == statusQueue.size()) {
                 // invalid
             }
@@ -382,7 +387,7 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
                 continue;
             }
 
-            int removeIndex = std::distance(statusQueue.begin(), iter_for_removal);
+            int removeIndex = (int)std::distance(statusQueue.begin(), iter_for_removal);
             if (removeIndex == statusQueue.size()) {
                 MGlobal::displayInfo("error2");
                 // invalid
@@ -417,8 +422,8 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
             UvEdge& otherEdge = firstEvent.otherEdge;
             std::vector<UvEdge>::iterator thisEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), thisEdge);
             std::vector<UvEdge>::iterator otherEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), otherEdge);
-            int thisIndex = std::distance(statusQueue.begin(), thisEdgeIter);
-            int otherIndex = std::distance(statusQueue.begin(), otherEdgeIter);
+            int thisIndex = (int)std::distance(statusQueue.begin(), thisEdgeIter);
+            int otherIndex = (int)std::distance(statusQueue.begin(), otherEdgeIter);
             int small;
             int big;
             if (thisIndex > otherIndex) {
@@ -446,6 +451,8 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
                 checkEdgesAndCreateEvent(firstEdge, thirdEdge, isParallel, intersectU, intersectV, eventQueue);
                 checkEdgesAndCreateEvent(secondEdge, forthEdge, isParallel, intersectU, intersectV, eventQueue);
             }
+        } else {
+            MGlobal::displayInfo("const MString &theMessage");
         }
     }
 

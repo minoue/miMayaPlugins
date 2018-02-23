@@ -6,12 +6,12 @@
 class UvEdge {
 public:
     UvEdge();
-    UvEdge(UvPoint beginPt, UvPoint endPt, long index);
+    UvEdge(UvPoint beginPt, UvPoint endPt, unsigned int index);
     ~UvEdge();
 
     UvPoint begin;
     UvPoint end;
-    long index;
+    unsigned int index;
     int beginIndex;
     int endIndex;
 
