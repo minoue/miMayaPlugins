@@ -28,42 +28,22 @@ bool UvEdge::operator==(const UvEdge& rhs) const
 
 bool UvEdge::operator>(const UvEdge& rhs) const
 {
-    if (this->crossingPointX == rhs.crossingPointX) {
-        return this->end.u > rhs.end.u;
-
-    } else {
-        return this->crossingPointX > rhs.crossingPointX;
-    }
+    return this->index > rhs.index;
 }
 
 bool UvEdge::operator>=(const UvEdge& rhs) const
 {
-    if (this->crossingPointX == rhs.crossingPointX) {
-        return this->end.u >= rhs.end.u;
-
-    } else {
-        return this->crossingPointX >= rhs.crossingPointX;
-    }
+    return this->index >= rhs.index;
 }
 
 bool UvEdge::operator<(const UvEdge& rhs) const
 {
-    if (this->crossingPointX == rhs.crossingPointX) {
-        return this->end.u < rhs.end.u;
-
-    } else {
-        return this->crossingPointX < rhs.crossingPointX;
-    }
+    return this->index < rhs.index;
 }
 
 bool UvEdge::operator<=(const UvEdge& rhs) const
 {
-    if (this->crossingPointX == rhs.crossingPointX) {
-        return this->end.u <= rhs.end.u;
-
-    } else {
-        return this->crossingPointX <= rhs.crossingPointX;
-    }
+    return this->index <= rhs.index;
 }
 
 bool UvEdge::isIntersected(UvEdge& otherEdge, bool& isParallel, float& u, float& v)
@@ -239,5 +219,16 @@ void UvEdge::setCrossingPointX(float Y)
     } else {
         float X = ((Y - y1) * (x2 - x1)) / (y2 - y1) + x1;
         this->crossingPointX = X;
+    }
+}
+
+
+bool UvEdgeComparator::operator()(const UvEdge& rhs1, const UvEdge& rhs2) const
+{
+    if (rhs1.crossingPointX == rhs2.crossingPointX) {
+        return rhs1.end.u < rhs2.end.u;
+
+    } else {
+        return rhs1.crossingPointX < rhs2.crossingPointX;
     }
 }

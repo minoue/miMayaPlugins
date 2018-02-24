@@ -222,7 +222,7 @@ MStatus FindUvOverlaps2::redoIt()
     }
 
     // Countainer for a set of overlapped shell edges
-    std::vector<std::unordered_set<UvEdge, hash_edge>> overlappedShells;
+    std::vector<std::set<UvEdge> > overlappedShells;
 
     // Countainer for a set of shell indices that doesn't have be checked as single shell
     std::set<int> dontCheck;
@@ -239,7 +239,7 @@ MStatus FindUvOverlaps2::redoIt()
 
         if (isShellOverlapped(shellA, shellB)) {
             // If two shells are overlapped, combine them into one single shell
-            std::unordered_set<UvEdge, hash_edge> combinedEdges;
+            std::set<UvEdge> combinedEdges;
             combinedEdges.insert(shellA.edgeSet.begin(), shellA.edgeSet.end());
             combinedEdges.insert(shellB.edgeSet.begin(), shellB.edgeSet.end());
             overlappedShells.push_back(combinedEdges);
@@ -300,9 +300,9 @@ bool FindUvOverlaps2::isShellOverlapped(UvShell& shellA, UvShell& shellB)
     return true;
 }
 
-MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std::unordered_set<int>& resultSet)
+MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges, std::unordered_set<int>& resultSet)
 {
-    std::unordered_set<UvEdge, hash_edge>::iterator iter;
+    std::set<UvEdge>::iterator iter;
 
     std::deque<Event> eventQueue;
 
@@ -350,7 +350,7 @@ MStatus FindUvOverlaps2::check(std::unordered_set<UvEdge, hash_edge>& edges, std
             for (int i = 0; i < statusQueue.size(); i++) {
                 statusQueue[i].setCrossingPointX(firstEvent.v);
             }
-            std::sort(statusQueue.begin(), statusQueue.end());
+            std::sort(statusQueue.begin(), statusQueue.end(), UvEdgeComparator());
 
             std::vector<UvEdge>::iterator foundIter = std::find(statusQueue.begin(), statusQueue.end(), edge);
             int index = (int)std::distance(statusQueue.begin(), foundIter);

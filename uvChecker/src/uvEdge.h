@@ -34,9 +34,15 @@ public:
         float& y2,
         float& x3,
         float& y3);
+    float crossingPointX;
 
 private:
-    float crossingPointX;
+};
+
+
+class UvEdgeComparator {
+public:
+    bool operator()(const UvEdge& rhs1, const UvEdge& rhs2) const;
 };
 
 #endif /* defined(__UVEDGE_H__) */
