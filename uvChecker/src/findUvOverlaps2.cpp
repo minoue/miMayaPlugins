@@ -13,10 +13,9 @@
 #include <algorithm>
 #include <iostream>
 #include <iterator>
-#include <string>
-#include <utility>
-#include <vector>
 #include <sstream>
+#include <string>
+#include <vector>
 
 FindUvOverlaps2::FindUvOverlaps2()
 {
@@ -194,7 +193,7 @@ MStatus FindUvOverlaps2::redoIt()
                 idB.set(uvIdA);
             }
             // MString edgeIndexStr = idA + idB;
-            unsigned int edgeIndex = ( idA + idB ).asUnsigned();
+            unsigned int edgeIndex = (idA + idB).asUnsigned();
 
             // Get UV values and create edge objects
             float u_current, v_current;
@@ -222,7 +221,7 @@ MStatus FindUvOverlaps2::redoIt()
     }
 
     // Countainer for a set of overlapped shell edges
-    std::vector<std::set<UvEdge> > overlappedShells;
+    std::vector<std::set<UvEdge>> overlappedShells;
 
     // Countainer for a set of shell indices that doesn't have be checked as single shell
     std::set<int> dontCheck;
@@ -303,11 +302,12 @@ bool FindUvOverlaps2::isShellOverlapped(UvShell& shellA, UvShell& shellB)
 MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges, std::unordered_set<int>& resultSet)
 {
     std::set<UvEdge>::iterator iter;
+    std::set<UvEdge>::iterator endIter = edges.end();
 
     std::deque<Event> eventQueue;
 
     int eventIndex = 0;
-    for (iter = edges.begin(); iter != edges.end(); ++iter) {
+    for (iter = edges.begin(); iter != endIter; ++iter) {
         UvEdge edge = *iter;
         Event ev1("begin", edge.begin, edge, eventIndex);
         eventQueue.push_back(ev1);
@@ -316,151 +316,160 @@ MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges, std::unordered_set<int>&
         eventQueue.push_back(ev2);
         eventIndex += 1;
     }
-
     std::sort(eventQueue.begin(), eventQueue.end());
 
     std::vector<UvEdge> statusQueue;
     statusQueue.reserve(edges.size());
-
-    size_t numStatus;
-
-    float intersectU;
-    float intersectV;
-    bool isParallel = false;
 
     while (true) {
         if (eventQueue.empty()) {
             break;
         }
         Event firstEvent = eventQueue.front();
-        UvEdge edge = firstEvent.edge;
+        // UvEdge edge = firstEvent.edge;
         eventQueue.pop_front();
 
         if (firstEvent.status == "begin") {
-            statusQueue.push_back(edge);
-
-            // if there are no edges to compare
-            numStatus = statusQueue.size();
-            if (numStatus == 1) {
-                continue;
-            }
-
-            // Update x values of intersection to the sweepline for all edges
-            // in the statusQueue
-            for (int i = 0; i < statusQueue.size(); i++) {
-                statusQueue[i].setCrossingPointX(firstEvent.v);
-            }
-            std::sort(statusQueue.begin(), statusQueue.end(), UvEdgeComparator());
-
-            std::vector<UvEdge>::iterator foundIter = std::find(statusQueue.begin(), statusQueue.end(), edge);
-            int index = (int)std::distance(statusQueue.begin(), foundIter);
-            if (index == statusQueue.size()) {
-                // invalid
-            }
-
-            UvEdge& currentEdge = statusQueue[index];
-
-            if (index == 0) {
-                // If first item, check the next edge
-                UvEdge& nextEdge = statusQueue[index + 1];
-                checkEdgesAndCreateEvent(currentEdge, nextEdge, isParallel, intersectU, intersectV, eventQueue);
-            } else if (index == statusQueue.size() - 1) {
-                // if last iten in the statusQueue
-                UvEdge& previousEdge = statusQueue[index - 1];
-                checkEdgesAndCreateEvent(currentEdge, previousEdge, isParallel, intersectU, intersectV, eventQueue);
-            } else {
-                UvEdge& nextEdge = statusQueue[index + 1];
-                UvEdge& previousEdge = statusQueue[index - 1];
-                checkEdgesAndCreateEvent(currentEdge, nextEdge, isParallel, intersectU, intersectV, eventQueue);
-                checkEdgesAndCreateEvent(currentEdge, previousEdge, isParallel, intersectU, intersectV, eventQueue);
-
-            }
-
+            doBegin(firstEvent, eventQueue, statusQueue);
         } else if (firstEvent.status == "end") {
-            numStatus = statusQueue.size();
-
-            std::vector<UvEdge>::iterator iter_for_removal = std::find(statusQueue.begin(), statusQueue.end(), edge);
-            if (iter_for_removal == statusQueue.end()) {
-                MGlobal::displayInfo("error1");
-                // if iter not found
-                // return MS::kFailure;
-                continue;
-            }
-
-            int removeIndex = (int)std::distance(statusQueue.begin(), iter_for_removal);
-            if (removeIndex == statusQueue.size()) {
-                MGlobal::displayInfo("error2");
-                // invalid
-                return MS::kFailure;
-            }
-
-            if (numStatus <= 2) {
-                // if num items are less than 2 in the countainer, do nothing
-            } else if (removeIndex == 0) {
-                // if first item, do nothing
-
-            } else if (removeIndex == numStatus - 1) {
-                // if last item, do nothing
-            } else {
-                // check previous and next edge intersection as they can be next
-                // each other after removing the current edge
-                UvEdge& nextEdge = statusQueue[removeIndex + 1];
-                UvEdge& previousEdge = statusQueue[removeIndex - 1];
-                checkEdgesAndCreateEvent(previousEdge, nextEdge, isParallel, intersectU, intersectV, eventQueue);
-            }
-
-            // Remove current edge from the statusQueue
-            statusQueue.erase(iter_for_removal);
+            doEnd(firstEvent, eventQueue, statusQueue);
         } else if (firstEvent.status == "intersect") {
-            // MGlobal::displayInfo("asdfasdf");
-            // intersect
-            if (statusQueue.size() <= 2) {
-                continue;
-            }
-
-            UvEdge& thisEdge = firstEvent.edge;
-            UvEdge& otherEdge = firstEvent.otherEdge;
-            std::vector<UvEdge>::iterator thisEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), thisEdge);
-            std::vector<UvEdge>::iterator otherEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), otherEdge);
-            int thisIndex = (int)std::distance(statusQueue.begin(), thisEdgeIter);
-            int otherIndex = (int)std::distance(statusQueue.begin(), otherEdgeIter);
-            int small;
-            int big;
-            if (thisIndex > otherIndex) {
-                small = otherIndex;
-                big = thisIndex;
-            } else {
-                small = thisIndex;
-                big = otherIndex;
-            }
-
-            if (small == 0) {
-                UvEdge& firstEdge = statusQueue[small];
-                UvEdge& secondEdge = statusQueue[big + 1];
-                checkEdgesAndCreateEvent(firstEdge, secondEdge, isParallel, intersectU, intersectV, eventQueue);
-            } else if (big == statusQueue.size() - 1) {
-                UvEdge& firstEdge = statusQueue[small - 1];
-                UvEdge& secondEdge = statusQueue[big];
-                checkEdgesAndCreateEvent(firstEdge, secondEdge, isParallel, intersectU, intersectV, eventQueue);
-            } else {
-                UvEdge& firstEdge = statusQueue[small - 1];
-                UvEdge& secondEdge = statusQueue[small];
-                UvEdge& thirdEdge = statusQueue[big];
-                UvEdge& forthEdge = statusQueue[big + 1];
-
-                checkEdgesAndCreateEvent(firstEdge, thirdEdge, isParallel, intersectU, intersectV, eventQueue);
-                checkEdgesAndCreateEvent(secondEdge, forthEdge, isParallel, intersectU, intersectV, eventQueue);
-            }
+            doCross(firstEvent, eventQueue, statusQueue);
         } else {
-            MGlobal::displayInfo("const MString &theMessage");
+            MGlobal::displayInfo("Unknow exception");
         }
     }
 
     return MS::kSuccess;
 }
 
-MStatus FindUvOverlaps2::checkEdgesAndCreateEvent(UvEdge& edgeA, UvEdge& edgeB, bool& isParallel, float& u, float& v, std::deque<Event>& eventQueue)
+bool FindUvOverlaps2::doBegin(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue)
 {
+    UvEdge edge = currentEvent.edge;
+    statusQueue.push_back(edge);
+
+    // if there are no edges to compare
+    size_t numStatus = statusQueue.size();
+    if (numStatus == 1) {
+        return false;
+    }
+
+    // Update x values of intersection to the sweepline for all edges
+    // in the statusQueue
+    for (int i = 0; i < numStatus; i++) {
+        statusQueue[i].setCrossingPointX(currentEvent.v);
+    }
+    std::sort(statusQueue.begin(), statusQueue.end(), UvEdgeComparator());
+
+    std::vector<UvEdge>::iterator foundIter = std::find(statusQueue.begin(), statusQueue.end(), edge);
+    int index = (int)std::distance(statusQueue.begin(), foundIter);
+    if (index == numStatus) {
+        // invalid
+    }
+
+    UvEdge& currentEdge = statusQueue[index];
+
+    if (index == 0) {
+        // If first item, check the next edge
+        UvEdge& nextEdge = statusQueue[index + 1];
+        checkEdgesAndCreateEvent(currentEdge, nextEdge, intersect_u, intersect_v, eventQueue);
+    } else if (index == numStatus - 1) {
+        // if last iten in the statusQueue
+        UvEdge& previousEdge = statusQueue[index - 1];
+        checkEdgesAndCreateEvent(currentEdge, previousEdge, intersect_u, intersect_v, eventQueue);
+    } else {
+        UvEdge& nextEdge = statusQueue[index + 1];
+        UvEdge& previousEdge = statusQueue[index - 1];
+        checkEdgesAndCreateEvent(currentEdge, nextEdge, intersect_u, intersect_v, eventQueue);
+        checkEdgesAndCreateEvent(currentEdge, previousEdge, intersect_u, intersect_v, eventQueue);
+    }
+    return true;
+}
+
+bool FindUvOverlaps2::doEnd(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue)
+{
+    UvEdge edge = currentEvent.edge;
+    std::vector<UvEdge>::iterator iter_for_removal = std::find(statusQueue.begin(), statusQueue.end(), edge);
+    if (iter_for_removal == statusQueue.end()) {
+        MGlobal::displayInfo("error1");
+        // if iter not found
+        // return MS::kFailure;
+        return false;
+    }
+
+    int removeIndex = (int)std::distance(statusQueue.begin(), iter_for_removal);
+    if (removeIndex == statusQueue.size()) {
+        MGlobal::displayInfo("error2");
+        // invalid
+        return MS::kFailure;
+        return false;
+    }
+
+    if (statusQueue.size() <= 2) {
+        // if num items are less than 2 in the countainer, do nothing
+    } else if (removeIndex == 0) {
+        // if first item, do nothing
+
+    } else if (removeIndex == statusQueue.size() - 1) {
+        // if last item, do nothing
+    } else {
+        // check previous and next edge intersection as they can be next
+        // each other after removing the current edge
+        UvEdge& nextEdge = statusQueue[removeIndex + 1];
+        UvEdge& previousEdge = statusQueue[removeIndex - 1];
+        checkEdgesAndCreateEvent(previousEdge, nextEdge, intersect_u, intersect_v, eventQueue);
+    }
+
+    // Remove current edge from the statusQueue
+    statusQueue.erase(iter_for_removal);
+    return true;
+}
+
+bool FindUvOverlaps2::doCross(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue)
+{
+    if (statusQueue.size() <= 2) {
+        return false;
+    }
+
+    UvEdge& thisEdge = currentEvent.edge;
+    UvEdge& otherEdge = currentEvent.otherEdge;
+    std::vector<UvEdge>::iterator thisEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), thisEdge);
+    std::vector<UvEdge>::iterator otherEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), otherEdge);
+    int thisIndex = (int)std::distance(statusQueue.begin(), thisEdgeIter);
+    int otherIndex = (int)std::distance(statusQueue.begin(), otherEdgeIter);
+    int small, big;
+
+    if (thisIndex > otherIndex) {
+        small = otherIndex;
+        big = thisIndex;
+    } else {
+        small = thisIndex;
+        big = otherIndex;
+    }
+
+    if (small == 0) {
+        UvEdge& firstEdge = statusQueue[small];
+        UvEdge& secondEdge = statusQueue[big + 1];
+        checkEdgesAndCreateEvent(firstEdge, secondEdge, intersect_u, intersect_v, eventQueue);
+    } else if (big == statusQueue.size() - 1) {
+        UvEdge& firstEdge = statusQueue[small - 1];
+        UvEdge& secondEdge = statusQueue[big];
+        checkEdgesAndCreateEvent(firstEdge, secondEdge, intersect_u, intersect_v, eventQueue);
+    } else {
+        UvEdge& firstEdge = statusQueue[small - 1];
+        UvEdge& secondEdge = statusQueue[small];
+        UvEdge& thirdEdge = statusQueue[big];
+        UvEdge& forthEdge = statusQueue[big + 1];
+
+        checkEdgesAndCreateEvent(firstEdge, thirdEdge, intersect_u, intersect_v, eventQueue);
+        checkEdgesAndCreateEvent(secondEdge, forthEdge, intersect_u, intersect_v, eventQueue);
+    }
+    return false;
+}
+
+MStatus FindUvOverlaps2::checkEdgesAndCreateEvent(UvEdge& edgeA, UvEdge& edgeB, float& u, float& v, std::deque<Event>& eventQueue)
+{
+    bool isParallel = false;
     if (edgeA.isIntersected(edgeB, isParallel, u, v)) {
         int ids[] = { edgeA.beginIndex, edgeA.endIndex, edgeB.beginIndex, edgeB.endIndex };
         resultSet.insert(ids, ids + 4);

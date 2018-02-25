@@ -25,15 +25,22 @@ public:
     static void* creator();
     static MSyntax newSyntax();
     MStatus check(std::set<UvEdge>& edges, std::unordered_set<int>& result);
-    MStatus checkEdgesAndCreateEvent(UvEdge& edgeA, UvEdge& edgeB, bool& isParallel, float& u, float& v, std::deque<Event>& eventQueue);
+    MStatus checkEdgesAndCreateEvent(UvEdge& edgeA, UvEdge& edgeB, float& u, float& v, std::deque<Event>& eventQueue);
     bool isShellOverlapped(UvShell& shellA, UvShell& shellB);
     void makeCombinations(size_t N, std::vector<std::vector<int>>& vec);
+    bool doBegin(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue);
+    bool doEnd(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue);
+    bool doCross(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue);
 
 private:
     bool verbose;
     MDagPath mDagPath;
     MFnMesh mFnMesh;
     MString uvSet;
+    
+    // u and v values of crossing point of two edges
+    float intersect_u;
+    float intersect_v;
     
     // Countainer for a set of UV indices for the final result
     std::unordered_set<int> resultSet;
