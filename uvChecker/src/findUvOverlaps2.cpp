@@ -9,6 +9,7 @@
 #include <maya/MSelectionList.h>
 #include <maya/MString.h>
 #include <maya/MStringArray.h>
+#include <maya/MThreadUtils.h>
 
 #include <algorithm>
 #include <iostream>
@@ -193,7 +194,7 @@ MStatus FindUvOverlaps2::redoIt()
                 idB.set(uvIdA);
             }
             // MString edgeIndexStr = idA + idB;
-            unsigned int edgeIndex = (idA + idB).asUnsigned();
+            unsigned int edgeIndex = ("1" + idA + idB).asUnsigned();
 
             // Get UV values and create edge objects
             float u_current, v_current;
@@ -220,58 +221,61 @@ MStatus FindUvOverlaps2::redoIt()
         }
     }
 
-    // Countainer for a set of overlapped shell edges
-    std::vector<std::set<UvEdge>> overlappedShells;
+    // Countainer for both overlapped shells and indivisual shells for checker
+    std::vector<std::set<UvEdge>> shellArray;
 
-    // Countainer for a set of shell indices that doesn't have be checked as single shell
-    std::set<int> dontCheck;
-
-    size_t numShells = uvShellArray.size();
+    // Array like [0, 1, 3, 4 ...... nbUvShells]
+    std::set<int> shellIndices;
+    for (unsigned int i = 0; i < nbUvShells; i++) {
+        shellIndices.insert(i);
+    }
 
     // Get combinations of shell indices eg. (0, 1), (0, 2), (1, 2),,,
     std::vector<std::vector<int>> shellCombinations;
-    makeCombinations(numShells, shellCombinations);
+    makeCombinations(uvShellArray.size(), shellCombinations);
 
-    for (int i = 0; i < shellCombinations.size(); i++) {
+    for (size_t i = 0; i < shellCombinations.size(); i++) {
         UvShell& shellA = uvShellArray[shellCombinations[i][0]];
         UvShell& shellB = uvShellArray[shellCombinations[i][1]];
 
         if (isShellOverlapped(shellA, shellB)) {
-            // If two shells are overlapped, combine them into one single shell
+            // Check boundingbox check for two shells
+            // If those two shells are overlapped, combine them into one single shell
+            // and add to shellArray
             std::set<UvEdge> combinedEdges;
             combinedEdges.insert(shellA.edgeSet.begin(), shellA.edgeSet.end());
             combinedEdges.insert(shellB.edgeSet.begin(), shellB.edgeSet.end());
-            overlappedShells.push_back(combinedEdges);
+            shellArray.push_back(combinedEdges);
 
-            dontCheck.insert(shellA.shellIndex);
-            dontCheck.insert(shellB.shellIndex);
+            // Remove from shellIndices as these shells don't have to be checked
+            // as indivisula shells
+            shellIndices.erase(shellA.shellIndex);
+            shellIndices.erase(shellB.shellIndex);
         }
     }
 
-    // Run checker for overlapped shells
-    for (int s = 0; s < overlappedShells.size(); s++) {
-        status = check(overlappedShells[s], resultSet);
+    std::set<int>::iterator shIter;
+    for (shIter = shellIndices.begin(); shIter != shellIndices.end(); ++shIter) {
+        int index = *shIter;
+        std::set<UvEdge>& tempSet = uvShellArray[index].edgeSet;
+        shellArray.push_back(tempSet);
+    }
+
+// Run checker for shells
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int s = 0; s < shellArray.size(); s++) {
+        status = check(shellArray[s], resultSet);
         if (status != MS::kSuccess) {
             MGlobal::displayInfo("Error found in shell");
         }
     }
 
-    // Run checker for single shells
-    for (int n = 0; n < uvShellArray.size(); n++) {
-        if (std::find(dontCheck.begin(), dontCheck.end(), n) != dontCheck.end()) {
-            // if contains, do nothing
-        } else {
-            status = check(uvShellArray[n].edgeSet, resultSet);
-            if (status != MS::kSuccess) {
-                MGlobal::displayInfo("Error found in shell");
-            }
-        }
-    }
-
     // Setup return result
     MStringArray resultStrArray;
+    MString index;
     for (std::unordered_set<int>::iterator fsi = resultSet.begin(); fsi != resultSet.end(); ++fsi) {
-        MString index;
         index.set(*fsi);
         MString fullPath = mDagPath.fullPathName();
         MString n = fullPath + ".map[" + index + "]";
@@ -336,7 +340,8 @@ MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges, std::unordered_set<int>&
         } else if (firstEvent.status == "intersect") {
             doCross(firstEvent, eventQueue, statusQueue);
         } else {
-            MGlobal::displayInfo("Unknow exception");
+            MGlobal::displayError("Unknow exception");
+            return MS::kFailure;
         }
     }
 
@@ -372,16 +377,16 @@ bool FindUvOverlaps2::doBegin(Event& currentEvent, std::deque<Event>& eventQueue
     if (index == 0) {
         // If first item, check the next edge
         UvEdge& nextEdge = statusQueue[index + 1];
-        checkEdgesAndCreateEvent(currentEdge, nextEdge, intersect_u, intersect_v, eventQueue);
+        checkEdgesAndCreateEvent(currentEdge, nextEdge, eventQueue);
     } else if (index == numStatus - 1) {
         // if last iten in the statusQueue
         UvEdge& previousEdge = statusQueue[index - 1];
-        checkEdgesAndCreateEvent(currentEdge, previousEdge, intersect_u, intersect_v, eventQueue);
+        checkEdgesAndCreateEvent(currentEdge, previousEdge, eventQueue);
     } else {
         UvEdge& nextEdge = statusQueue[index + 1];
         UvEdge& previousEdge = statusQueue[index - 1];
-        checkEdgesAndCreateEvent(currentEdge, nextEdge, intersect_u, intersect_v, eventQueue);
-        checkEdgesAndCreateEvent(currentEdge, previousEdge, intersect_u, intersect_v, eventQueue);
+        checkEdgesAndCreateEvent(currentEdge, nextEdge, eventQueue);
+        checkEdgesAndCreateEvent(currentEdge, previousEdge, eventQueue);
     }
     return true;
 }
@@ -417,7 +422,7 @@ bool FindUvOverlaps2::doEnd(Event& currentEvent, std::deque<Event>& eventQueue, 
         // each other after removing the current edge
         UvEdge& nextEdge = statusQueue[removeIndex + 1];
         UvEdge& previousEdge = statusQueue[removeIndex - 1];
-        checkEdgesAndCreateEvent(previousEdge, nextEdge, intersect_u, intersect_v, eventQueue);
+        checkEdgesAndCreateEvent(previousEdge, nextEdge, eventQueue);
     }
 
     // Remove current edge from the statusQueue
@@ -450,31 +455,31 @@ bool FindUvOverlaps2::doCross(Event& currentEvent, std::deque<Event>& eventQueue
     if (small == 0) {
         UvEdge& firstEdge = statusQueue[small];
         UvEdge& secondEdge = statusQueue[big + 1];
-        checkEdgesAndCreateEvent(firstEdge, secondEdge, intersect_u, intersect_v, eventQueue);
+        checkEdgesAndCreateEvent(firstEdge, secondEdge, eventQueue);
     } else if (big == statusQueue.size() - 1) {
         UvEdge& firstEdge = statusQueue[small - 1];
         UvEdge& secondEdge = statusQueue[big];
-        checkEdgesAndCreateEvent(firstEdge, secondEdge, intersect_u, intersect_v, eventQueue);
+        checkEdgesAndCreateEvent(firstEdge, secondEdge, eventQueue);
     } else {
         UvEdge& firstEdge = statusQueue[small - 1];
         UvEdge& secondEdge = statusQueue[small];
         UvEdge& thirdEdge = statusQueue[big];
         UvEdge& forthEdge = statusQueue[big + 1];
 
-        checkEdgesAndCreateEvent(firstEdge, thirdEdge, intersect_u, intersect_v, eventQueue);
-        checkEdgesAndCreateEvent(secondEdge, forthEdge, intersect_u, intersect_v, eventQueue);
+        checkEdgesAndCreateEvent(firstEdge, thirdEdge, eventQueue);
+        checkEdgesAndCreateEvent(secondEdge, forthEdge, eventQueue);
     }
     return false;
 }
 
-MStatus FindUvOverlaps2::checkEdgesAndCreateEvent(UvEdge& edgeA, UvEdge& edgeB, float& u, float& v, std::deque<Event>& eventQueue)
+MStatus FindUvOverlaps2::checkEdgesAndCreateEvent(UvEdge& edgeA, UvEdge& edgeB, std::deque<Event>& eventQueue)
 {
     bool isParallel = false;
-    if (edgeA.isIntersected(edgeB, isParallel, u, v)) {
+    if (edgeA.isIntersected(edgeB, isParallel, intersect_u, intersect_v)) {
         int ids[] = { edgeA.beginIndex, edgeA.endIndex, edgeB.beginIndex, edgeB.endIndex };
         resultSet.insert(ids, ids + 4);
         if (isParallel == false) {
-            Event crossEvent("intersect", u, v, edgeA, edgeB);
+            Event crossEvent("intersect", intersect_u, intersect_v, edgeA, edgeB);
             eventQueue.push_back(crossEvent);
             std::sort(eventQueue.begin(), eventQueue.end());
         }
