@@ -221,56 +221,69 @@ MStatus FindUvOverlaps2::redoIt()
         }
     }
 
-    // Countainer for both overlapped shells and indivisual shells for checker
-    std::vector<std::set<UvEdge>> shellArray;
+	if (nbUvShells == 1) {
+		// if there is only one uv shell, just send it to checker command. 
+		// don't need to check uv bounding box overlaps check.
+		status = check(uvShellArray[0].edgeSet);
+		if (status != MS::kSuccess) {
+			MGlobal::displayInfo("Error found in shell");
+		}
+	}
+	else {
+		// If there multiple uv shells, do BBox overlap check first, then if they overlaps,
+		// make one combined shell and send it to checker command
+		
+		// Countainer for both overlapped shells and indivisual shells for checker
+		std::vector<std::set<UvEdge>> shellArray;
 
-    // Array like [0, 1, 3, 4 ...... nbUvShells]
-    std::set<int> shellIndices;
-    for (unsigned int i = 0; i < nbUvShells; i++) {
-        shellIndices.insert(i);
-    }
+		// Array like [0, 1, 3, 4 ...... nbUvShells]
+		std::set<int> shellIndices;
+		for (unsigned int i = 0; i < nbUvShells; i++) {
+			shellIndices.insert(i);
+		}
 
-    // Get combinations of shell indices eg. (0, 1), (0, 2), (1, 2),,,
-    std::vector<std::vector<int>> shellCombinations;
-    makeCombinations(uvShellArray.size(), shellCombinations);
+		// Get combinations of shell indices eg. (0, 1), (0, 2), (1, 2),,,
+		std::vector<std::vector<int>> shellCombinations;
+		makeCombinations(uvShellArray.size(), shellCombinations);
 
-    for (size_t i = 0; i < shellCombinations.size(); i++) {
-        UvShell& shellA = uvShellArray[shellCombinations[i][0]];
-        UvShell& shellB = uvShellArray[shellCombinations[i][1]];
+		for (size_t i = 0; i < shellCombinations.size(); i++) {
+			UvShell& shellA = uvShellArray[shellCombinations[i][0]];
+			UvShell& shellB = uvShellArray[shellCombinations[i][1]];
 
-        if (isShellOverlapped(shellA, shellB)) {
-            // Check boundingbox check for two shells
-            // If those two shells are overlapped, combine them into one single shell
-            // and add to shellArray
-            std::set<UvEdge> combinedEdges;
-            combinedEdges.insert(shellA.edgeSet.begin(), shellA.edgeSet.end());
-            combinedEdges.insert(shellB.edgeSet.begin(), shellB.edgeSet.end());
-            shellArray.push_back(combinedEdges);
+			if (isShellOverlapped(shellA, shellB)) {
+				// Check boundingbox check for two shells
+				// If those two shells are overlapped, combine them into one single shell
+				// and add to shellArray
+				std::set<UvEdge> combinedEdges;
+				combinedEdges.insert(shellA.edgeSet.begin(), shellA.edgeSet.end());
+				combinedEdges.insert(shellB.edgeSet.begin(), shellB.edgeSet.end());
+				shellArray.push_back(combinedEdges);
 
-            // Remove from shellIndices as these shells don't have to be checked
-            // as indivisula shells
-            shellIndices.erase(shellA.shellIndex);
-            shellIndices.erase(shellB.shellIndex);
-        }
-    }
+				// Remove from shellIndices as these shells don't have to be checked
+				// as indivisula shells
+				shellIndices.erase(shellA.shellIndex);
+				shellIndices.erase(shellB.shellIndex);
+			}
+		}
 
-    std::set<int>::iterator shIter;
-    for (shIter = shellIndices.begin(); shIter != shellIndices.end(); ++shIter) {
-        int index = *shIter;
-        std::set<UvEdge>& tempSet = uvShellArray[index].edgeSet;
-        shellArray.push_back(tempSet);
-    }
+		std::set<int>::iterator shIter;
+		for (shIter = shellIndices.begin(); shIter != shellIndices.end(); ++shIter) {
+			int index = *shIter;
+			std::set<UvEdge>& tempSet = uvShellArray[index].edgeSet;
+			shellArray.push_back(tempSet);
+		}
 
-// Run checker for shells
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int s = 0; s < shellArray.size(); s++) {
-        status = check(shellArray[s], resultSet);
-        if (status != MS::kSuccess) {
-            MGlobal::displayInfo("Error found in shell");
-        }
-    }
+		// Run checker for shells
+		// #ifdef _OPENMP
+		// #pragma omp parallel for
+		// #endif
+		for (size_t s = 0; s < shellArray.size(); s++) {
+			status = check(shellArray[s]);
+			if (status != MS::kSuccess) {
+				MGlobal::displayInfo("Error found in shell");
+			}
+		}
+	}
 
     // Setup return result
     MStringArray resultStrArray;
@@ -303,7 +316,7 @@ bool FindUvOverlaps2::isShellOverlapped(UvShell& shellA, UvShell& shellB)
     return true;
 }
 
-MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges, std::unordered_set<int>& resultSet)
+MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges)
 {
     std::set<UvEdge>::iterator iter;
     std::set<UvEdge>::iterator endIter = edges.end();
@@ -361,13 +374,17 @@ bool FindUvOverlaps2::doBegin(Event& currentEvent, std::deque<Event>& eventQueue
 
     // Update x values of intersection to the sweepline for all edges
     // in the statusQueue
-    for (int i = 0; i < numStatus; i++) {
+    for (size_t i = 0; i < numStatus; i++) {
         statusQueue[i].setCrossingPointX(currentEvent.v);
     }
     std::sort(statusQueue.begin(), statusQueue.end(), UvEdgeComparator());
 
     std::vector<UvEdge>::iterator foundIter = std::find(statusQueue.begin(), statusQueue.end(), edge);
-    int index = (int)std::distance(statusQueue.begin(), foundIter);
+	if (foundIter == statusQueue.end()) {
+		// not found
+		return false;
+	}
+    size_t index = std::distance(statusQueue.begin(), foundIter);
     if (index == numStatus) {
         // invalid
     }
@@ -402,7 +419,7 @@ bool FindUvOverlaps2::doEnd(Event& currentEvent, std::deque<Event>& eventQueue, 
         return false;
     }
 
-    int removeIndex = (int)std::distance(statusQueue.begin(), iter_for_removal);
+    size_t removeIndex = std::distance(statusQueue.begin(), iter_for_removal);
     if (removeIndex == statusQueue.size()) {
         MGlobal::displayInfo("error2");
         // invalid
@@ -440,9 +457,13 @@ bool FindUvOverlaps2::doCross(Event& currentEvent, std::deque<Event>& eventQueue
     UvEdge& otherEdge = currentEvent.otherEdge;
     std::vector<UvEdge>::iterator thisEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), thisEdge);
     std::vector<UvEdge>::iterator otherEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), otherEdge);
-    int thisIndex = (int)std::distance(statusQueue.begin(), thisEdgeIter);
-    int otherIndex = (int)std::distance(statusQueue.begin(), otherEdgeIter);
-    int small, big;
+	if (thisEdgeIter == statusQueue.end() || otherEdgeIter == statusQueue.end()) {
+		// if not found
+		return false;
+	}
+    size_t thisIndex = std::distance(statusQueue.begin(), thisEdgeIter);
+    size_t otherIndex = std::distance(statusQueue.begin(), otherEdgeIter);
+    size_t small, big;
 
     if (thisIndex > otherIndex) {
         small = otherIndex;
@@ -496,7 +517,7 @@ void FindUvOverlaps2::makeCombinations(size_t N, std::vector<std::vector<int>>& 
     // print integers and permute bitmask
     do {
         std::vector<int> sb;
-        for (int i = 0; i < N; ++i) {
+        for (size_t i = 0; i < N; ++i) {
             if (bitmask[i]) {
                 sb.push_back(i);
             }
