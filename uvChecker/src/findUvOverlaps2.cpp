@@ -60,7 +60,7 @@ MStatus FindUvOverlaps2::doIt(const MArgList& args)
     if (argData.isFlagSet("-uvSet"))
         argData.getFlagArgument("-uvSet", 0, uvSet);
     else
-        uvSet = "map1";
+        uvSet = mFnMesh.currentUVSetName();
 
     // Check if specified object is geometry or not
     status = mDagPath.extendToShape();
@@ -105,7 +105,15 @@ MStatus FindUvOverlaps2::redoIt()
     MStatus status;
 
     const MString* uvSetPtr = &uvSet;
-
+    
+    // getUvShellsIds function gives wrong number of uv shells when accessing
+    // to non-current uvSets. So just temporarily switch to target uvSet then switch
+    // back to current uvSet at the end of function.
+    MString currentUvSet = mFnMesh.currentUVSetName();
+    if (uvSet != currentUvSet) {
+        mFnMesh.setCurrentUVSetName(uvSet);
+    }
+    
     MIntArray uvShellIds;
     unsigned int nbUvShells;
     mFnMesh.getUvShellsIds(uvShellIds, nbUvShells, uvSetPtr);
@@ -284,6 +292,9 @@ MStatus FindUvOverlaps2::redoIt()
 			}
 		}
 	}
+    
+    // Switch back to the initial uv set
+    mFnMesh.setCurrentUVSetName(currentUvSet);
 
     // Setup return result
     MStringArray resultStrArray;
