@@ -10,6 +10,7 @@
 #include <maya/MString.h>
 #include <maya/MStringArray.h>
 #include <maya/MThreadUtils.h>
+#include <maya/MTimer.h>
 
 #include <algorithm>
 #include <iostream>
@@ -103,6 +104,10 @@ MStatus FindUvOverlaps2::doIt(const MArgList& args)
 MStatus FindUvOverlaps2::redoIt()
 {
     MStatus status;
+
+    MTimer timer;
+    MString timeStr;
+    timer.beginTimer();
 
     const MString* uvSetPtr = &uvSet;
     
@@ -229,6 +234,15 @@ MStatus FindUvOverlaps2::redoIt()
         }
     }
 
+    timer.endTimer();
+    double time = timer.elapsedTime();
+    if (verbose) {
+        timeStr.set(time);
+        MGlobal::displayInfo("Initialization done : " + timeStr + " seconds");
+    }
+    timer.clear();
+
+    timer.beginTimer();
 	if (nbUvShells == 1) {
 		// if there is only one uv shell, just send it to checker command. 
 		// don't need to check uv bounding box overlaps check.
@@ -292,6 +306,13 @@ MStatus FindUvOverlaps2::redoIt()
 			}
 		}
 	}
+
+    timer.endTimer();
+    if (verbose) {
+        timeStr.set(timer.elapsedTime());
+        MGlobal::displayInfo("check completed : " + timeStr + " seconds.");
+    }
+    timer.clear();
     
     // Switch back to the initial uv set
     mFnMesh.setCurrentUVSetName(currentUvSet);
@@ -329,13 +350,10 @@ bool FindUvOverlaps2::isShellOverlapped(UvShell& shellA, UvShell& shellB)
 
 MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges)
 {
-    std::set<UvEdge>::iterator iter;
-    std::set<UvEdge>::iterator endIter = edges.end();
-
     std::deque<Event> eventQueue;
 
     int eventIndex = 0;
-    for (iter = edges.begin(); iter != endIter; ++iter) {
+    for (std::set<UvEdge>::iterator iter = edges.begin(), end = edges.end(); iter != end; ++iter) {
         UvEdge edge = *iter;
         Event ev1("begin", edge.begin, edge, eventIndex);
         eventQueue.push_back(ev1);
@@ -356,7 +374,7 @@ MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges)
         Event firstEvent = eventQueue.front();
         // UvEdge edge = firstEvent.edge;
         eventQueue.pop_front();
-
+    
         if (firstEvent.status == "begin") {
             doBegin(firstEvent, eventQueue, statusQueue);
         } else if (firstEvent.status == "end") {
