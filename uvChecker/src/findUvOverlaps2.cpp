@@ -320,7 +320,7 @@ MStatus FindUvOverlaps2::redoIt()
     // Setup return result
     MStringArray resultStrArray;
     MString index;
-    for (std::unordered_set<int>::iterator fsi = resultSet.begin(); fsi != resultSet.end(); ++fsi) {
+    for (std::unordered_set<int>::iterator fsi = resultSet.begin(), end = resultSet.end(); fsi != end; ++fsi) {
         index.set(*fsi);
         MString fullPath = mDagPath.fullPathName();
         MString n = fullPath + ".map[" + index + "]";
@@ -348,7 +348,7 @@ bool FindUvOverlaps2::isShellOverlapped(UvShell& shellA, UvShell& shellB)
     return true;
 }
 
-MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges)
+MStatus FindUvOverlaps2::check(const std::set<UvEdge>& edges)
 {
     std::deque<Event> eventQueue;
 
@@ -392,7 +392,7 @@ MStatus FindUvOverlaps2::check(std::set<UvEdge>& edges)
 
 bool FindUvOverlaps2::doBegin(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue)
 {
-    UvEdge edge = currentEvent.edge;
+    UvEdge& edge = currentEvent.edge;
     statusQueue.push_back(edge);
 
     // if there are no edges to compare
@@ -439,7 +439,7 @@ bool FindUvOverlaps2::doBegin(Event& currentEvent, std::deque<Event>& eventQueue
 
 bool FindUvOverlaps2::doEnd(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue)
 {
-    UvEdge edge = currentEvent.edge;
+    UvEdge& edge = currentEvent.edge;
     std::vector<UvEdge>::iterator iter_for_removal = std::find(statusQueue.begin(), statusQueue.end(), edge);
     if (iter_for_removal == statusQueue.end()) {
         MGlobal::displayInfo("error1");

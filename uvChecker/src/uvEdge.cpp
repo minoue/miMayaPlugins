@@ -141,18 +141,6 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool& isParallel, float& u, float&
         } else {
             return false;
         }
-
-        // If two edges are parallel on a same line
-        // Vector v1 = this->begin - otherEdge.begin;
-        // Vector v2 = this->end - otherEdge.begin;
-        // float d1 = v1.dot(v2);
-        // Vector v3 = this->begin - otherEdge.end;
-        // Vector v4 = this->end - otherEdge.end;
-        // float d2 = v3.dot(v4);
-        // if (d1 > 0.0 && d2 > 0.0)
-        //     return true;
-        // else
-        //     return false;
     }
 
     float ccw1;
@@ -203,8 +191,7 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool& isParallel, float& u, float&
 
 float UvEdge::getTriangleArea(float& Ax, float& Ay, float& Bx, float& By, float& Cx, float& Cy)
 {
-    float area = ((Ax * (By - Cy)) + (Bx * (Cy - Ay)) + (Cx * (Ay - By))) / (float)2.0;
-    return area;
+    return ((Ax * (By - Cy)) + (Bx * (Cy - Ay)) + (Cx * (Ay - By))) * 0.5F;
 }
 
 void UvEdge::setCrossingPointX(float Y)

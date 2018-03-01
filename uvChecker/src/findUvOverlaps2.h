@@ -24,7 +24,7 @@ public:
     bool isUndoable() const;
     static void* creator();
     static MSyntax newSyntax();
-    MStatus check(std::set<UvEdge>& edges);
+    MStatus check(const std::set<UvEdge>& edges);
     MStatus checkEdgesAndCreateEvent(UvEdge& edgeA, UvEdge& edgeB, std::deque<Event>& eventQueue);
     bool isShellOverlapped(UvShell& shellA, UvShell& shellB);
     void makeCombinations(size_t N, std::vector<std::vector<int>>& vec);
