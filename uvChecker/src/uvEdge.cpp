@@ -51,13 +51,9 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool& isParallel, float& u, float&
 
     // Check edge index if they have shared UV index
     bool isConnected;
-    int& this_index_A = this->beginIndex;
-    int& this_index_B = this->endIndex;
-    int& other_index_A = otherEdge.beginIndex;
-    int& other_index_B = otherEdge.endIndex;
-    if (this_index_A == other_index_A || this_index_A == other_index_B) {
+    if (this->beginIndex == otherEdge.beginIndex || this->beginIndex == otherEdge.endIndex) {
         isConnected = true;
-    } else if (this_index_B == other_index_A || this_index_B == other_index_B) {
+    } else if (this->endIndex == otherEdge.beginIndex || this->endIndex == otherEdge.endIndex) {
         isConnected = true;
     } else {
         isConnected = false;
@@ -79,6 +75,10 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool& isParallel, float& u, float&
         this->end.u,
         this->end.v);
 
+	if ((area1 == 0 && area2 == 0) && isConnected == true) {
+		return false;
+	}
+
     float area3 = getTriangleArea(
         otherEdge.begin.u,
         otherEdge.begin.v,
@@ -96,6 +96,8 @@ bool UvEdge::isIntersected(UvEdge& otherEdge, bool& isParallel, float& u, float&
         otherEdge.end.v);
 
     if (area1 == 0.0 && area2 == 0.0) {
+        // if area of the two triangles are 0, two lines are parallel on a same
+        // line
         float u_min;
         float u_max;
         float v_min;
