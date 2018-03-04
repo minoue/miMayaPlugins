@@ -9,8 +9,6 @@ set(SOURCE_FILES
         src/uvPoint.h
         src/uvEdge.cpp
         src/uvEdge.h
-        src/vector.cpp
-        src/vector.h
         src/uvShell.cpp
         src/uvShell.h
         src/findUvOverlaps.cpp
