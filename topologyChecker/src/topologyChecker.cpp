@@ -120,6 +120,17 @@ MStatus MeshChecker::findCreaseEDges()
     return MS::kSuccess;
 }
 
+MStatus MeshChecker::findZeroLengthEdges() {
+    double length;
+    for (MItMeshEdge mItEdge(mDagPath); !mItEdge.isDone(); mItEdge.next()) {
+        mItEdge.getLength(length);
+        if (length < minEdgeLength) {
+            indexArray.append(mItEdge.index());
+        }
+    }
+    return MS::kSuccess;
+}
+
 MStringArray MeshChecker::setResultString(std::string componentType)
 {
     MString fullpath = mDagPath.fullPathName();
@@ -149,6 +160,7 @@ MSyntax MeshChecker::newSyntax()
     MSyntax syntax;
     syntax.addFlag("-c", "-check", MSyntax::kUnsigned);
     syntax.addFlag("-fa", "-faceAreaMax", MSyntax::kDouble);
+    syntax.addFlag("-mel", "-minEdgeLength", MSyntax::kDouble);
     return syntax;
 }
 
@@ -181,6 +193,11 @@ MStatus MeshChecker::doIt(const MArgList& args)
         argData.getFlagArgument("-faceAreaMax", 0, faceAreaMax);
     else
         faceAreaMax = 0.00001;
+
+    if (argData.isFlagSet("-minEdgeLength"))
+        argData.getFlagArgument("-minEdgeLength", 0, minEdgeLength);
+    else
+        minEdgeLength = 0.000001;
 
     MSelectionList mList;
     mList.add(argument);
@@ -224,6 +241,11 @@ MStatus MeshChecker::doIt(const MArgList& args)
         break;
     case MeshChecker::CREASE_EDGE:
         status = findCreaseEDges();
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        resultArray = setResultString("edge");
+        break;
+    case MeshChecker::ZERO_LENGTH_EDGES:
+        status = findZeroLengthEdges();
         CHECK_MSTATUS_AND_RETURN_IT(status);
         resultArray = setResultString("edge");
         break;

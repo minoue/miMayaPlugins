@@ -31,6 +31,7 @@ public:
     MStatus findZeroAreaFaces(double& faceAreaMax);
     MStatus findMeshBorderEdges();
     MStatus findCreaseEDges();
+    MStatus findZeroLengthEdges();
 
     MStringArray setResultString(std::string componentType);
 
@@ -43,6 +44,7 @@ public:
         ZERO_AREA_FACES,
         MESH_BORDER,
         CREASE_EDGE,
+        ZERO_LENGTH_EDGES,
         TEST
     };
 
@@ -52,6 +54,7 @@ private:
     MIntArray indexArray;
     unsigned int checkNumber;
     MStringArray resultArray;
+    double minEdgeLength;
 };
 
 #endif /* defined(__MESHCHECKER_H__) */
