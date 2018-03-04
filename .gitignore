@@ -9,6 +9,10 @@ tags
 tags
 ctags
 build/
+*/vc/
+*/xcode/
+*.sublime-project
+*.sublime-workspace
 uvChecker/.idea/
 uvChecker/cmake-build-debug/
 modules/
