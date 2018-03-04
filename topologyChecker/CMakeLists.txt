@@ -5,8 +5,6 @@ set(SOURCE_FILES
         src/pluginMain.cpp
         src/topologyChecker.cpp
         src/topologyChecker.h
-        src/uvUtils.cpp
-        src/uvUtils.h
         )
 
 # https://www.guyrutenberg.com/2014/01/05/enabling-c11-c0x-in-cmake/
