@@ -1,5 +1,5 @@
-#ifndef __TOPOLOGYCHECKER_H__
-#define __TOPOLOGYCHECKER_H__
+#ifndef __MESHCHECKER_H__
+#define __MESHCHECKER_H__
 
 #include <maya/MDagPath.h>
 #include <maya/MItMeshEdge.h>
@@ -9,10 +9,10 @@
 #include <maya/MStringArray.h>
 #include <string>
 
-class TopologyChecker : public MPxCommand {
+class MeshChecker : public MPxCommand {
 public:
-    TopologyChecker();
-    virtual ~TopologyChecker();
+    MeshChecker();
+    virtual ~MeshChecker();
     MStatus doIt(const MArgList& argList);
     MStatus undoIt();
     MStatus redoIt();
@@ -26,10 +26,10 @@ public:
     MStatus findNonManifoldEdges(MIntArray& indexArray);
     MStatus findLaminaFaces(MIntArray& indexArray);
     MStatus findBiValentFaces(MIntArray& indexArray);
-    MStatus findZeroAreaFaces(MIntArray& indexArray,
-        double& faceAreaMax);
+    MStatus findZeroAreaFaces(MIntArray& indexArray, double& faceAreaMax);
     MStatus findMeshBorderEdges(MIntArray& indexArray);
     MStatus findCreaseEDges(MIntArray& indexArray);
+
     MStringArray setResultString(MIntArray& indexArray,
         std::string componentType);
 
@@ -50,4 +50,4 @@ private:
     double faceAreaMax;
 };
 
-#endif /* defined(__TOPOLOGYCHECKER_H__) */
+#endif /* defined(__MESHCHECKER_H__) */
