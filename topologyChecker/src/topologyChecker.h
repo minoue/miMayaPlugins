@@ -7,6 +7,8 @@
 #include <maya/MItMeshVertex.h>
 #include <maya/MPxCommand.h>
 #include <maya/MStringArray.h>
+#include <maya/MIntArray.h>
+
 #include <string>
 
 class MeshChecker : public MPxCommand {
@@ -21,17 +23,16 @@ public:
     static MSyntax newSyntax();
 
     // check functions
-    MStatus findTriangles(MIntArray& indexArray);
-    MStatus findNgons(MIntArray& indexArray);
-    MStatus findNonManifoldEdges(MIntArray& indexArray);
-    MStatus findLaminaFaces(MIntArray& indexArray);
-    MStatus findBiValentFaces(MIntArray& indexArray);
-    MStatus findZeroAreaFaces(MIntArray& indexArray, double& faceAreaMax);
-    MStatus findMeshBorderEdges(MIntArray& indexArray);
-    MStatus findCreaseEDges(MIntArray& indexArray);
+    MStatus findTriangles();
+    MStatus findNgons();
+    MStatus findNonManifoldEdges();
+    MStatus findLaminaFaces();
+    MStatus findBiValentFaces();
+    MStatus findZeroAreaFaces(double& faceAreaMax);
+    MStatus findMeshBorderEdges();
+    MStatus findCreaseEDges();
 
-    MStringArray setResultString(MIntArray& indexArray,
-        std::string componentType);
+    MStringArray setResultString(std::string componentType);
 
     enum Check {
         TRIANGLES,
@@ -48,6 +49,9 @@ public:
 private:
     MDagPath mDagPath;
     double faceAreaMax;
+    MIntArray indexArray;
+    unsigned int checkNumber;
+    MStringArray resultArray;
 };
 
 #endif /* defined(__MESHCHECKER_H__) */
