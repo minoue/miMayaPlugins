@@ -32,6 +32,7 @@ public:
     MStatus findMeshBorderEdges();
     MStatus findCreaseEDges();
     MStatus findZeroLengthEdges();
+    MStatus findUnfrozenVertices();
 
     MStringArray setResultString(std::string componentType);
 
@@ -45,6 +46,7 @@ public:
         MESH_BORDER,
         CREASE_EDGE,
         ZERO_LENGTH_EDGES,
+        UNFROZEN_VERTICES,
         TEST
     };
 

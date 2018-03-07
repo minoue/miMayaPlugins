@@ -8,6 +8,9 @@
 #include <maya/MString.h>
 #include <maya/MSyntax.h>
 #include <maya/MUintArray.h>
+#include <maya/MFnDagNode.h>
+#include <maya/MPlug.h>
+
 
 MeshChecker::MeshChecker()
 {
@@ -131,6 +134,44 @@ MStatus MeshChecker::findZeroLengthEdges() {
     return MS::kSuccess;
 }
 
+MStatus MeshChecker::findUnfrozenVertices() {
+    // reference
+    // https://nccastaff.bournemouth.ac.uk/jmacey/RobTheBloke/www/research/maya/mfn_attributes.htm
+    mDagPath.extendToShape();
+    MFnDagNode mFnDag(mDagPath);
+    MPlug pntsArray = mFnDag.findPlug("pnts");
+    unsigned int numElements = pntsArray.numElements();
+
+    for (unsigned int i = 0; i < numElements; i++) {
+        // MPlug compound = pntsArray.elementByPhysicalIndex(i);
+        // MPlug compound = pntsArray.elementByLogicalIndex(i);
+        // float x, y, z;
+        // if (compound.isCompound()) {
+        //     MPlug plug_x = compound.child(0);
+        //     MPlug plug_y = compound.child(1);
+        //     MPlug plug_z = compound.child(2);
+        //
+        //     plug_x.getValue(x);
+        //     plug_y.getValue(y);
+        //     plug_z.getValue(z);
+        //
+        //     if (x != 0.0) {
+        //         indexArray.append(i);
+        //         continue;
+        //     }
+        //     if (y != 0.0) {
+        //         indexArray.append(i);
+        //         continue;
+        //     }
+        //     if (z != 0.0) {
+        //         indexArray.append(i);
+        //         continue;
+        //     }
+        // }
+    }
+    return MS::kSuccess;
+}
+
 MStringArray MeshChecker::setResultString(std::string componentType)
 {
     MString fullpath = mDagPath.fullPathName();
@@ -248,6 +289,11 @@ MStatus MeshChecker::doIt(const MArgList& args)
         status = findZeroLengthEdges();
         CHECK_MSTATUS_AND_RETURN_IT(status);
         resultArray = setResultString("edge");
+        break;
+    case MeshChecker::UNFROZEN_VERTICES:
+        status = findUnfrozenVertices();
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        resultArray = setResultString("vertex");
         break;
     case MeshChecker::TEST:
         break;
