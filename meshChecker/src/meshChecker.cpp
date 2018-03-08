@@ -45,11 +45,8 @@ MStatus MeshChecker::findNonManifoldEdges()
     MStatus status;
     int faceCount;
     for (MItMeshEdge mItEdge(mDagPath); !mItEdge.isDone(); mItEdge.next()) {
-        status = mItEdge.numConnectedFaces(faceCount);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-
-        std::cout << faceCount << std::endl;
-        if (faceCount >= 3) {
+        mItEdge.numConnectedFaces(faceCount);
+        if (faceCount > 2) {
             indexArray.append(mItEdge.index());
         }
     }
