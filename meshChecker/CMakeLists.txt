@@ -3,8 +3,8 @@ project(meshChecker)
 
 set(SOURCE_FILES
         src/pluginMain.cpp
-        src/topologyChecker.cpp
-        src/topologyChecker.h
+        src/meshChecker.cpp
+        src/meshChecker.h
         )
 
 # https://www.guyrutenberg.com/2014/01/05/enabling-c11-c0x-in-cmake/

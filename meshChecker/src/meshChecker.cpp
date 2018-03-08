@@ -1,4 +1,4 @@
-#include "topologyChecker.h"
+#include "meshChecker.h"
 #include <maya/MArgDatabase.h>
 #include <maya/MArgList.h>
 #include <maya/MDoubleArray.h>
@@ -140,34 +140,27 @@ MStatus MeshChecker::findUnfrozenVertices() {
     mDagPath.extendToShape();
     MFnDagNode mFnDag(mDagPath);
     MPlug pntsArray = mFnDag.findPlug("pnts");
-    unsigned int numElements = pntsArray.numElements();
+    
+    MFnMesh fnMesh(mDagPath);
+    unsigned int numVerts = fnMesh.numVertices();
 
-    for (unsigned int i = 0; i < numElements; i++) {
+    for (unsigned int i = 0; i < numVerts; i++) {
         // MPlug compound = pntsArray.elementByPhysicalIndex(i);
-        // MPlug compound = pntsArray.elementByLogicalIndex(i);
-        // float x, y, z;
-        // if (compound.isCompound()) {
-        //     MPlug plug_x = compound.child(0);
-        //     MPlug plug_y = compound.child(1);
-        //     MPlug plug_z = compound.child(2);
-        //
-        //     plug_x.getValue(x);
-        //     plug_y.getValue(y);
-        //     plug_z.getValue(z);
-        //
-        //     if (x != 0.0) {
-        //         indexArray.append(i);
-        //         continue;
-        //     }
-        //     if (y != 0.0) {
-        //         indexArray.append(i);
-        //         continue;
-        //     }
-        //     if (z != 0.0) {
-        //         indexArray.append(i);
-        //         continue;
-        //     }
-        // }
+        MPlug compound = pntsArray.elementByLogicalIndex(i);
+        float x, y, z;
+        if (compound.isCompound()) {
+            MPlug plug_x = compound.child(0);
+            MPlug plug_y = compound.child(1);
+            MPlug plug_z = compound.child(2);
+        
+            plug_x.getValue(x);
+            plug_y.getValue(y);
+            plug_z.getValue(z);
+            
+            float temp = x + y + z;
+            if (temp != 0)
+                indexArray.append(i);
+        }
     }
     return MS::kSuccess;
 }
@@ -293,6 +286,9 @@ MStatus MeshChecker::doIt(const MArgList& args)
     case MeshChecker::UNFROZEN_VERTICES:
         status = findUnfrozenVertices();
         CHECK_MSTATUS_AND_RETURN_IT(status);
+        // if (unfrozen) {
+        //     resultArray.append(mDagPath.fullPathName());
+        // }
         resultArray = setResultString("vertex");
         break;
     case MeshChecker::TEST:
