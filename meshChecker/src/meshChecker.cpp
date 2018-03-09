@@ -79,12 +79,12 @@ MStatus MeshChecker::findBiValentFaces()
     return MS::kSuccess;
 }
 
-MStatus MeshChecker::findZeroAreaFaces(double& faceAreaMax)
+MStatus MeshChecker::findZeroAreaFaces(double& maxFaceArea)
 {
     double area;
     for (MItMeshPolygon mItPoly(mDagPath); !mItPoly.isDone(); mItPoly.next()) {
         mItPoly.getArea(area);
-        if (area < faceAreaMax) {
+        if (area < maxFaceArea) {
             indexArray.append(mItPoly.index());
         }
     }
@@ -190,7 +190,7 @@ MSyntax MeshChecker::newSyntax()
 {
     MSyntax syntax;
     syntax.addFlag("-c", "-check", MSyntax::kUnsigned);
-    syntax.addFlag("-fa", "-faceAreaMax", MSyntax::kDouble);
+    syntax.addFlag("-mfa", "-maxFaceArea", MSyntax::kDouble);
     syntax.addFlag("-mel", "-minEdgeLength", MSyntax::kDouble);
     return syntax;
 }
@@ -220,10 +220,10 @@ MStatus MeshChecker::doIt(const MArgList& args)
         return MS::kFailure;
     }
 
-    if (argData.isFlagSet("-faceAreaMax"))
-        argData.getFlagArgument("-faceAreaMax", 0, faceAreaMax);
+    if (argData.isFlagSet("-maxFaceArea"))
+        argData.getFlagArgument("-maxFaceArea", 0, maxFaceArea);
     else
-        faceAreaMax = 0.00001;
+        maxFaceArea = 0.00001;
 
     if (argData.isFlagSet("-minEdgeLength"))
         argData.getFlagArgument("-minEdgeLength", 0, minEdgeLength);
@@ -261,7 +261,7 @@ MStatus MeshChecker::doIt(const MArgList& args)
         resultArray = setResultString("vertex");
         break;
     case MeshChecker::ZERO_AREA_FACES:
-        status = findZeroAreaFaces(faceAreaMax);
+        status = findZeroAreaFaces(maxFaceArea);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         resultArray = setResultString("face");
         break;

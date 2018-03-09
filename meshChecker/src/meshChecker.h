@@ -28,7 +28,7 @@ public:
     MStatus findNonManifoldEdges();
     MStatus findLaminaFaces();
     MStatus findBiValentFaces();
-    MStatus findZeroAreaFaces(double& faceAreaMax);
+    MStatus findZeroAreaFaces(double& maxFaceArea);
     MStatus findMeshBorderEdges();
     MStatus findCreaseEDges();
     MStatus findZeroLengthEdges();
@@ -52,7 +52,7 @@ public:
 
 private:
     MDagPath mDagPath;
-    double faceAreaMax;
+    double maxFaceArea;
     MIntArray indexArray;
     unsigned int checkNumber;
     MStringArray resultArray;
