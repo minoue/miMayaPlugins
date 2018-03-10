@@ -1,7 +1,6 @@
 #ifndef __UVPOINT__
 #define __UVPOINT__
 
-#include "vector.h"
 
 class UvPoint {
 public:
@@ -26,8 +25,6 @@ public:
     bool operator>=(const UvPoint& rhs) const;
     bool operator<(const UvPoint& rhs) const;
     bool operator<=(const UvPoint& rhs) const;
-
-    Vector operator-(const UvPoint& rhs) const;
 
 private:
 };

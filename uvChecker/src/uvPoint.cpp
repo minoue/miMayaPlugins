@@ -1,5 +1,4 @@
 #include "uvPoint.h"
-#include "vector.h"
 
 UvPoint::UvPoint()
 {
@@ -73,14 +72,4 @@ bool UvPoint::operator<=(const UvPoint& rhs) const
         return this->u < rhs.u;
     else
         return this->v < rhs.v;
-}
-
-Vector UvPoint::operator-(const UvPoint& rhs) const
-{
-    float u = rhs.u - this->u;
-    float v = rhs.v - this->v;
-    Vector vec;
-    vec.u = u;
-    vec.v = v;
-    return vec;
 }
