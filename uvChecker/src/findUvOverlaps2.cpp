@@ -44,8 +44,8 @@ MStatus FindUvOverlaps2::doIt(const MArgList& args)
 
     status = argData.getCommandArgument(0, sel);
     if (status != MS::kSuccess) {
-        MGlobal::displayError("You have to provide an object path");
-        return MStatus::kFailure;
+        // if not specified, use selection
+        MGlobal::getActiveSelectionList(sel);
     }
 
     sel.getDagPath(0, mDagPath);
