@@ -1,4 +1,4 @@
-#include "findUvOverlaps.h"
+#include "findUvOverlaps_old.h"
 #include <maya/MArgDatabase.h>
 #include <maya/MArgList.h>
 #include <maya/MGlobal.h>
