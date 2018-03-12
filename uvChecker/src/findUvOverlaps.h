@@ -1,25 +1,27 @@
-#ifndef __FINDUVOVERLAPS_H__
-#define __FINDUVOVERLAPS_H__
+#ifndef __FINDUVOVERLAPS2_H__
+#define __FINDUVOVERLAPS2_H__
 
-#include "uvPoint.h"
-#include "uvShell.h"
 #include <maya/MDagPath.h>
-#include <maya/MFloatArray.h>
 #include <maya/MFnMesh.h>
-#include <maya/MIntArray.h>
 #include <maya/MPxCommand.h>
+#include <maya/MSelectionList.h>
 #include <maya/MString.h>
 #include <maya/MStringArray.h>
 #include <maya/MSyntax.h>
-#include <maya/MThreadPool.h>
-#include <unordered_map>
+
+#include "event.h"
+#include "uvEdge.h"
+#include "uvShell.h"
+
+#include <deque>
+#include <set>
 #include <unordered_set>
 #include <vector>
 
-class FindUvOverlaps : public MPxCommand {
+class FindUvOverlaps2 : public MPxCommand {
 public:
-    FindUvOverlaps();
-    virtual ~FindUvOverlaps();
+    FindUvOverlaps2();
+    virtual ~FindUvOverlaps2();
     MStatus doIt(const MArgList& argList);
     MStatus undoIt();
     MStatus redoIt();
@@ -27,40 +29,31 @@ public:
     static void* creator();
     static MSyntax newSyntax();
 
-    bool checkShellIntersection(UvShell& s1, UvShell& s2);
-    MStatus createTaskData(int numPolygons, MString& uvSet);
-    MStatus createShellTaskData(
-        UvShell& shellA,
-        UvShell& shellB,
-        MString& uvSet,
-        std::unordered_map<int,
-        std::vector<int>>& uvMap);
-    MStatus findShellIntersectionsST(
-        UvShell& shellA,
-        UvShell& shellB,
-        MString* uvSetPtr,
-        std::unordered_map<int, std::vector<int>>& uvMap,
-        std::vector<bool>& resultBoolVector);
+    MStatus check(const std::set<UvEdge>& edges);
+    MStatus checkEdgesAndCreateEvent(UvEdge& edgeA, UvEdge& edgeB, std::deque<Event>& eventQueue);
+    MStatus initializeObject(const MDagPath& dagPath, const int objectId);
+    void makeCombinations(size_t N, std::vector<std::vector<int>>& vec);
 
-    static bool checkCrossingNumber(float& u, float& v, std::vector<int>& uvIds);
-    static void createThreadData(void* data, MThreadRootTask* root);
-    static void createShellThreadData(void* data, MThreadRootTask* root);
-    static MThreadRetVal findShellIntersectionsMT(void* data);
-    static MThreadRetVal findInnerIntersectionsMT(void* data);
-    static float getTriangleArea(float& Ax, float& Ay, float& Bx, float& By, float& Cx, float& Cy);
+    bool isShellOverlapped(UvShell& shellA, UvShell& shellB);
+    bool doBegin(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue);
+    bool doEnd(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue);
+    bool doCross(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue);
 
 private:
-    MIntArray innerIntersectionsResult;
-    MIntArray shellIntersectionsResult;
-    MFnMesh fnMesh;
     bool verbose;
-    bool isMultiThreaded;
+    MDagPath dagPath;
     MString uvSet;
-    static MDagPath mDagPath;
-    static MFloatArray uArray;
-    static MFloatArray vArray;
-    std::vector<bool> resultBoolVector;
-    MStringArray resultStrArray;
+    MSelectionList mSel;
+
+    // Container to store all UV shells to be tested
+    std::vector<UvShell> uvShellArrayMaster;
+
+    // u and v values of crossing point of two edges
+    float intersect_u;
+    float intersect_v;
+
+    // Countainer for UVs of final result
+    MStringArray resultStringArray;
 };
 
-#endif /* defined(__FINDUVOVERLAPS_H__) */
+#endif /* defined(__FINDUVOVERLAPS2_H__) */

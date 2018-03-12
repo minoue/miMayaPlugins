@@ -1,69 +1,565 @@
 #include "findUvOverlaps.h"
+#include "testCase.h"
+#include "uvPoint.h"
+
 #include <maya/MArgDatabase.h>
 #include <maya/MArgList.h>
 #include <maya/MGlobal.h>
-#include <maya/MItMeshVertex.h>
-#include <maya/MSelectionList.h>
+#include <maya/MIntArray.h>
+#include <maya/MThreadUtils.h>
 #include <maya/MTimer.h>
 
 #include <algorithm>
-#include <iostream>
+#include <iterator>
 #include <string>
 
-#define NUM_TASKS 16
-
-MDagPath FindUvOverlaps::mDagPath;
-MFloatArray FindUvOverlaps::uArray;
-MFloatArray FindUvOverlaps::vArray;
-
-struct taskDataTag {
-    int start;
-    int end;
-    MString uvSet;
-    MIntArray innerIntersections;
-    int* boolArray;
-};
-
-struct shellTaskDataTag {
-    UvShell* shellA;
-    UvShell* shellB;
-    MString uvSet;
-    std::unordered_map<int, std::vector<int>>* uvMap;
-    std::unordered_set<int> resultIndexSet;
-};
-
-struct threadDataTag {
-    int start;
-    int end;
-    taskDataTag* taskData;
-};
-
-struct shellThreadDataTag {
-    int start;
-    int end;
-    std::vector<int> result;
-    shellTaskDataTag* shellTaskData;
-};
-
-FindUvOverlaps::FindUvOverlaps()
+FindUvOverlaps2::FindUvOverlaps2()
 {
 }
 
-FindUvOverlaps::~FindUvOverlaps()
+FindUvOverlaps2::~FindUvOverlaps2()
 {
 }
 
-MSyntax FindUvOverlaps::newSyntax()
+MSyntax FindUvOverlaps2::newSyntax()
 {
     MSyntax syntax;
     syntax.addArg(MSyntax::kString);
     syntax.addFlag("-v", "-verbose", MSyntax::kBoolean);
-    syntax.addFlag("-mt", "-multiThread", MSyntax::kBoolean);
-    syntax.addFlag("-uv", "-uvSet", MSyntax::kString);
+    syntax.addFlag("-set", "-uvSet", MSyntax::kString);
     return syntax;
 }
 
-void combination(int N, std::vector<std::vector<int>>& vec)
+MStatus FindUvOverlaps2::doIt(const MArgList& args)
+{
+    MStatus status;
+
+    MArgDatabase argData(syntax(), args);
+
+    status = argData.getCommandArgument(0, mSel);
+    if (status != MS::kSuccess) {
+        // if not specified, use current selections
+        MGlobal::getActiveSelectionList(mSel);
+    }
+
+    if (argData.isFlagSet("-verbose"))
+        argData.getFlagArgument("-verbose", 0, verbose);
+    else
+        verbose = false;
+
+    if (argData.isFlagSet("-uvSet"))
+        argData.getFlagArgument("-uvSet", 0, uvSet);
+    else
+        uvSet = "None";
+
+    return redoIt();
+}
+
+MStatus FindUvOverlaps2::redoIt()
+{
+    MStatus status;
+
+    MString timeStr;
+    MTimer timer;
+
+    // INITILIZATION PROCESS
+    //
+    timer.beginTimer();
+    int numSelection = mSel.length();
+    int objectId = 1;
+    for (int i = 0; i < numSelection; i++) {
+        mSel.getDagPath(i, dagPath);
+
+        // Check if specified object is geometry or not
+        status = dagPath.extendToShape();
+        if (status != MS::kSuccess) {
+            if (verbose)
+                MGlobal::displayInfo("Failed to extend to shape node.");
+            continue;
+        }
+
+        if (dagPath.apiType() != MFn::kMesh) {
+            if (verbose)
+                MGlobal::displayInfo("Selected node : " + dagPath.fullPathName() + " is not mesh.");
+            continue;
+        }
+
+        status = initializeObject(dagPath, objectId);
+        if (status != MS::kSuccess) {
+            MGlobal::displayWarning("Initialization failed at :" + dagPath.fullPathName());
+            MGlobal::displayWarning(dagPath.fullPathName() + " will not be evaluated.");
+            continue;
+        }
+        objectId++;
+    }
+    timer.endTimer();
+    if (verbose) {
+        timeStr.set(timer.elapsedTime());
+        MGlobal::displayInfo("Initialization completed : " + timeStr + " seconds.");
+    }
+    timer.clear();
+
+    if (uvShellArrayMaster.size() == 0) {
+        MGlobal::displayWarning("No meshes are found or selected.");
+        return MS::kSuccess;
+    }
+
+    // CHECKING PROCESS
+    //
+    timer.beginTimer();
+    if (uvShellArrayMaster.size() == 1) {
+        // if there is only one uv shell, just send it to checker command.
+        // don't need to check uv bounding box overlaps check.
+        status = check(uvShellArrayMaster[0].edgeSet);
+        std::cout << uvShellArrayMaster[0].edgeSet.size() << std::endl;
+        if (status != MS::kSuccess) {
+            MGlobal::displayInfo("Error found in shell");
+        }
+    } else {
+        // If there multiple uv shells, do BBox overlap check first, then if they overlaps,
+        // make one combined shell and send it to checker command
+
+        // Countainer for both overlapped shells and indivisual shells for checker
+        std::vector<std::set<UvEdge>> shellArray;
+
+        // Array like [0, 1, 3, 4 ...... nbUvShells]
+        std::set<int> shellIndices;
+        for (unsigned int i = 0; i < uvShellArrayMaster.size(); i++) {
+            shellIndices.insert(i);
+        }
+
+        // Get combinations of shell indices eg. (0, 1), (0, 2), (1, 2),,,
+        std::vector<std::vector<int>> shellCombinations;
+        makeCombinations(uvShellArrayMaster.size(), shellCombinations);
+
+        for (size_t i = 0; i < shellCombinations.size(); i++) {
+            UvShell& shellA = uvShellArrayMaster[shellCombinations[i][0]];
+            UvShell& shellB = uvShellArrayMaster[shellCombinations[i][1]];
+
+            if (isShellOverlapped(shellA, shellB)) {
+                // Check boundingbox check for two shells
+                // If those two shells are overlapped, combine them into one single shell
+                // and add to shellArray
+                std::set<UvEdge> combinedEdges;
+                combinedEdges.insert(shellA.edgeSet.begin(), shellA.edgeSet.end());
+                combinedEdges.insert(shellB.edgeSet.begin(), shellB.edgeSet.end());
+                shellArray.push_back(combinedEdges);
+
+                // Remove from shellIndices as these shells don't have to be checked
+                // as indivisula shells
+                shellIndices.erase(shellA.shellIndex);
+                shellIndices.erase(shellB.shellIndex);
+            }
+        }
+
+        std::set<int>::iterator shIter;
+        for (shIter = shellIndices.begin(); shIter != shellIndices.end(); ++shIter) {
+            int index = *shIter;
+            std::set<UvEdge>& tempSet = uvShellArrayMaster[index].edgeSet;
+            shellArray.push_back(tempSet);
+        }
+
+        // Run checker for shells
+        // #ifdef _OPENMP
+        // #pragma omp parallel for
+        // #endif
+        for (size_t s = 0; s < shellArray.size(); s++) {
+            status = check(shellArray[s]);
+            if (status != MS::kSuccess) {
+                MGlobal::displayInfo("Error found in shell");
+            }
+        }
+    }
+
+    timer.endTimer();
+    if (verbose) {
+        timeStr.set(timer.elapsedTime());
+        MGlobal::displayInfo("check completed : " + timeStr + " seconds.");
+    }
+    timer.clear();
+
+    MPxCommand::setResult(resultStringArray);
+
+    return MS::kSuccess;
+}
+
+MStatus FindUvOverlaps2::initializeObject(const MDagPath& dagPath, const int objectId)
+{
+
+    MStatus status;
+
+    MFnMesh fnMesh(dagPath);
+
+    std::vector<UvShell> uvShellArrayTemp;
+
+    // getUvShellsIds function gives wrong number of uv shells when accessing
+    // to non-current uvSets. So just temporarily switch to target uvSet then switch
+    // back to current uvSet at the end of function.
+    MString currentUvSet = fnMesh.currentUVSetName();
+    MString workUvSet;
+
+    // Check if specified uv set exists
+    MStringArray uvSetNames;
+    bool uvSetFound = false;
+    fnMesh.getUVSetNames(uvSetNames);
+    for (unsigned int uv = 0; uv < uvSetNames.length(); uv++) {
+        MString& uvSetName = uvSetNames[uv];
+        if (uvSetName == uvSet) {
+            uvSetFound = true;
+            break;
+        }
+    }
+
+    if (uvSet == "None") {
+        workUvSet = fnMesh.currentUVSetName();
+    } else if (uvSetFound == false) {
+        return MS::kFailure;
+    } else {
+        fnMesh.setCurrentUVSetName(uvSet);
+        workUvSet = uvSet;
+    }
+    const MString* uvSetPtr = &workUvSet;
+
+    MIntArray uvShellIds;
+    unsigned int nbUvShells;
+
+    fnMesh.getUvShellsIds(uvShellIds, nbUvShells, uvSetPtr);
+
+    // if no UVs are detected on this mesh
+    if (nbUvShells == 0) {
+        MGlobal::displayError("No UVs are found.");
+        return MS::kFailure;
+    }
+
+    int numUVs = fnMesh.numUVs(workUvSet);
+    int numPolygons = fnMesh.numPolygons();
+
+    // Setup uv shell objects
+    uvShellArrayTemp.resize(nbUvShells);
+    for (unsigned int i = 0; i < nbUvShells; i++) {
+        UvShell shell;
+        // shell.shellIndex = i;
+        uvShellArrayTemp[i] = shell;
+    }
+
+    // Get UV values and add them to the shell
+    for (int uvId = 0; uvId < numUVs; uvId++) {
+        float u, v;
+        fnMesh.getUV(uvId, u, v, uvSetPtr);
+        UvShell& currentShell = uvShellArrayTemp[uvShellIds[uvId]];
+        currentShell.uVector.push_back(u);
+        currentShell.vVector.push_back(v);
+    }
+
+    // Setup bounding box information for each shell
+    for (unsigned int id = 0; id < nbUvShells; id++) {
+        UvShell& shell = uvShellArrayTemp[id];
+        float uMax = *std::max_element(shell.uVector.begin(), shell.uVector.end());
+        float vMax = *std::max_element(shell.vVector.begin(), shell.vVector.end());
+        float uMin = *std::min_element(shell.uVector.begin(), shell.uVector.end());
+        float vMin = *std::min_element(shell.vVector.begin(), shell.vVector.end());
+        shell.uMax = uMax;
+        shell.vMax = vMax;
+        shell.uMin = uMin;
+        shell.vMin = vMin;
+    }
+
+    // Loop all polygon faces and create edge objects
+    for (int faceId = 0; faceId < numPolygons; faceId++) {
+        int numPolygonVertices = fnMesh.polygonVertexCount(faceId);
+        for (int localVtx = 0; localVtx < numPolygonVertices; localVtx++) {
+            int curLocalIndex;
+            int nextLocalIndex;
+            if (localVtx == numPolygonVertices - 1) {
+                curLocalIndex = localVtx;
+                nextLocalIndex = 0;
+            } else {
+                curLocalIndex = localVtx;
+                nextLocalIndex = localVtx + 1;
+            }
+
+            // UV indices by local order
+            int uvIdA;
+            int uvIdB;
+
+            // Check if current polygon face has mapped UVs, if not break this loop and go to next face
+            MStatus statusA = fnMesh.getPolygonUVid(faceId, curLocalIndex, uvIdA, uvSetPtr);
+            MStatus statusB = fnMesh.getPolygonUVid(faceId, nextLocalIndex, uvIdB, uvSetPtr);
+            if (statusA != MS::kSuccess || statusB != MS::kSuccess) {
+                if (verbose)
+                    MGlobal::displayWarning("Non mapped faces are found");
+                break;
+            }
+
+            int currentShellIndex = uvShellIds[uvIdA];
+
+            // Create edge index from two point index
+            // eg. obj1 (1), p1(0), p2(25) will make edge index of 1025
+            std::string uvIdSmallStr;
+            std::string uvIdBigStr;
+
+            MString idA;
+            MString idB;
+            MString objId;
+            if (uvIdA < uvIdB) {
+                idA.set(uvIdA);
+                idB.set(uvIdB);
+            } else {
+                idA.set(uvIdB);
+                idB.set(uvIdA);
+            }
+            objId.set(objectId);
+            // MString edgeIndexStr = idA + idB;
+            unsigned int edgeIndex = (objId + idA + idB).asUnsigned();
+
+            // Get UV values and create edge objects
+            float u_current, v_current;
+            float u_next, v_next;
+            fnMesh.getPolygonUV(faceId, curLocalIndex, u_current, v_current, uvSetPtr);
+            fnMesh.getPolygonUV(faceId, nextLocalIndex, u_next, v_next, uvSetPtr);
+            UvPoint p1(u_current, v_current, uvIdA, currentShellIndex);
+            UvPoint p2(u_next, v_next, uvIdB, currentShellIndex);
+
+            p1.path = dagPath.fullPathName() + ".map[" + idA + "]";
+            p2.path = dagPath.fullPathName() + ".map[" + idB + "]";
+
+            UvPoint beginPt;
+            UvPoint endPt;
+
+            if (p1 > p2) {
+                beginPt = p2;
+                endPt = p1;
+            } else {
+                beginPt = p1;
+                endPt = p2;
+            }
+
+            // Create edge objects and insert them to shell edge set
+            UvEdge edge(beginPt, endPt, edgeIndex);
+            uvShellArrayTemp[currentShellIndex].edgeSet.insert(edge);
+        }
+    }
+
+    // Switch back to the initial uv set
+    fnMesh.setCurrentUVSetName(currentUvSet);
+
+    std::copy(uvShellArrayTemp.begin(), uvShellArrayTemp.end(), std::back_inserter(uvShellArrayMaster));
+
+    return MS::kSuccess;
+}
+
+bool FindUvOverlaps2::isShellOverlapped(UvShell& shellA, UvShell& shellB)
+{
+    if (shellA.uMax < shellB.uMin)
+        return false;
+
+    if (shellA.uMin > shellB.uMax)
+        return false;
+
+    if (shellA.vMax < shellB.vMin)
+        return false;
+
+    if (shellA.vMin > shellB.vMax)
+        return false;
+
+    return true;
+}
+
+MStatus FindUvOverlaps2::check(const std::set<UvEdge>& edges)
+{
+    std::deque<Event> eventQueue;
+
+    int eventIndex = 0;
+    for (std::set<UvEdge>::iterator iter = edges.begin(), end = edges.end(); iter != end; ++iter) {
+        UvEdge edge = *iter;
+        Event ev1("begin", edge.begin, edge, eventIndex);
+        eventQueue.push_back(ev1);
+        eventIndex += 1;
+        Event ev2("end", edge.end, edge, eventIndex);
+        eventQueue.push_back(ev2);
+        eventIndex += 1;
+    }
+    std::sort(eventQueue.begin(), eventQueue.end());
+
+    std::vector<UvEdge> statusQueue;
+    statusQueue.reserve(edges.size());
+
+    while (true) {
+        if (eventQueue.empty()) {
+            break;
+        }
+        Event firstEvent = eventQueue.front();
+        // UvEdge edge = firstEvent.edge;
+        eventQueue.pop_front();
+
+        if (firstEvent.status == "begin") {
+            doBegin(firstEvent, eventQueue, statusQueue);
+        } else if (firstEvent.status == "end") {
+            doEnd(firstEvent, eventQueue, statusQueue);
+        } else if (firstEvent.status == "intersect") {
+            doCross(firstEvent, eventQueue, statusQueue);
+        } else {
+            MGlobal::displayError("Unknow exception");
+            return MS::kFailure;
+        }
+    }
+
+    return MS::kSuccess;
+}
+
+bool FindUvOverlaps2::doBegin(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue)
+{
+    UvEdge& edge = currentEvent.edge;
+    statusQueue.push_back(edge);
+
+    // if there are no edges to compare
+    size_t numStatus = statusQueue.size();
+    if (numStatus == 1) {
+        return false;
+    }
+
+    // Update x values of intersection to the sweepline for all edges
+    // in the statusQueue
+    for (size_t i = 0; i < numStatus; i++) {
+        statusQueue[i].setCrossingPointX(currentEvent.v);
+    }
+    std::sort(statusQueue.begin(), statusQueue.end(), UvEdgeComparator());
+
+    std::vector<UvEdge>::iterator foundIter = std::find(statusQueue.begin(), statusQueue.end(), edge);
+    if (foundIter == statusQueue.end()) {
+        // not found
+        return false;
+    }
+    size_t index = std::distance(statusQueue.begin(), foundIter);
+    if (index == numStatus) {
+        // invalid
+    }
+
+    UvEdge& currentEdge = statusQueue[index];
+
+    if (index == 0) {
+        // If first item, check the next edge
+        UvEdge& nextEdge = statusQueue[index + 1];
+        checkEdgesAndCreateEvent(currentEdge, nextEdge, eventQueue);
+    } else if (index == numStatus - 1) {
+        // if last iten in the statusQueue
+        UvEdge& previousEdge = statusQueue[index - 1];
+        checkEdgesAndCreateEvent(currentEdge, previousEdge, eventQueue);
+    } else {
+        UvEdge& nextEdge = statusQueue[index + 1];
+        UvEdge& previousEdge = statusQueue[index - 1];
+        checkEdgesAndCreateEvent(currentEdge, nextEdge, eventQueue);
+        checkEdgesAndCreateEvent(currentEdge, previousEdge, eventQueue);
+    }
+    return true;
+}
+
+bool FindUvOverlaps2::doEnd(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue)
+{
+    UvEdge& edge = currentEvent.edge;
+    std::vector<UvEdge>::iterator iter_for_removal = std::find(statusQueue.begin(), statusQueue.end(), edge);
+    if (iter_for_removal == statusQueue.end()) {
+        MGlobal::displayInfo("error1");
+        // if iter not found
+        // return MS::kFailure;
+        return false;
+    }
+
+    size_t removeIndex = std::distance(statusQueue.begin(), iter_for_removal);
+    if (removeIndex == statusQueue.size()) {
+        MGlobal::displayInfo("error2");
+        // invalid
+        return MS::kFailure;
+        return false;
+    }
+
+    if (statusQueue.size() <= 2) {
+        // if num items are less than 2 in the countainer, do nothing
+    } else if (removeIndex == 0) {
+        // if first item, do nothing
+
+    } else if (removeIndex == statusQueue.size() - 1) {
+        // if last item, do nothing
+    } else {
+        // check previous and next edge intersection as they can be next
+        // each other after removing the current edge
+        UvEdge& nextEdge = statusQueue[removeIndex + 1];
+        UvEdge& previousEdge = statusQueue[removeIndex - 1];
+        checkEdgesAndCreateEvent(previousEdge, nextEdge, eventQueue);
+    }
+
+    // Remove current edge from the statusQueue
+    statusQueue.erase(iter_for_removal);
+    return true;
+}
+
+bool FindUvOverlaps2::doCross(Event& currentEvent, std::deque<Event>& eventQueue, std::vector<UvEdge>& statusQueue)
+{
+    if (statusQueue.size() <= 2) {
+        return false;
+    }
+
+    UvEdge& thisEdge = currentEvent.edge;
+    UvEdge& otherEdge = currentEvent.otherEdge;
+    std::vector<UvEdge>::iterator thisEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), thisEdge);
+    std::vector<UvEdge>::iterator otherEdgeIter = std::find(statusQueue.begin(), statusQueue.end(), otherEdge);
+    if (thisEdgeIter == statusQueue.end() || otherEdgeIter == statusQueue.end()) {
+        // if not found
+        return false;
+    }
+    size_t thisIndex = std::distance(statusQueue.begin(), thisEdgeIter);
+    size_t otherIndex = std::distance(statusQueue.begin(), otherEdgeIter);
+    size_t small, big;
+
+    if (thisIndex > otherIndex) {
+        small = otherIndex;
+        big = thisIndex;
+    } else {
+        small = thisIndex;
+        big = otherIndex;
+    }
+
+    if (small == 0) {
+        UvEdge& firstEdge = statusQueue[small];
+        UvEdge& secondEdge = statusQueue[big + 1];
+        checkEdgesAndCreateEvent(firstEdge, secondEdge, eventQueue);
+    } else if (big == statusQueue.size() - 1) {
+        UvEdge& firstEdge = statusQueue[small - 1];
+        UvEdge& secondEdge = statusQueue[big];
+        checkEdgesAndCreateEvent(firstEdge, secondEdge, eventQueue);
+    } else {
+        UvEdge& firstEdge = statusQueue[small - 1];
+        UvEdge& secondEdge = statusQueue[small];
+        UvEdge& thirdEdge = statusQueue[big];
+        UvEdge& forthEdge = statusQueue[big + 1];
+
+        checkEdgesAndCreateEvent(firstEdge, thirdEdge, eventQueue);
+        checkEdgesAndCreateEvent(secondEdge, forthEdge, eventQueue);
+    }
+    return false;
+}
+
+MStatus FindUvOverlaps2::checkEdgesAndCreateEvent(UvEdge& edgeA, UvEdge& edgeB, std::deque<Event>& eventQueue)
+{
+    bool isParallel = false;
+    if (edgeA.isIntersected(edgeB, isParallel, intersect_u, intersect_v)) {
+
+        resultStringArray.append(edgeA.begin.path);
+        resultStringArray.append(edgeA.end.path);
+        resultStringArray.append(edgeB.begin.path);
+        resultStringArray.append(edgeB.end.path);
+
+        if (isParallel == false) {
+            Event crossEvent("intersect", intersect_u, intersect_v, edgeA, edgeB);
+            eventQueue.push_back(crossEvent);
+            std::sort(eventQueue.begin(), eventQueue.end());
+        }
+    }
+    return MS::kSuccess;
+}
+
+/* https://stackoverflow.com/questions/12991758/creating-all-possible-k-combinations-of-n-items-in-c */
+void FindUvOverlaps2::makeCombinations(size_t N, std::vector<std::vector<int>>& vec)
 {
     std::string bitmask(2, 1); // K leading 1's
     bitmask.resize(N, 0); // N-K trailing 0's
@@ -71,7 +567,7 @@ void combination(int N, std::vector<std::vector<int>>& vec)
     // print integers and permute bitmask
     do {
         std::vector<int> sb;
-        for (int i = 0; i < N; ++i) {
+        for (size_t i = 0; i < N; ++i) {
             if (bitmask[i]) {
                 sb.push_back(i);
             }
@@ -80,635 +576,17 @@ void combination(int N, std::vector<std::vector<int>>& vec)
     } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 }
 
-float FindUvOverlaps::getTriangleArea(float& Ax, float& Ay, float& Bx, float& By, float& Cx, float& Cy)
-{
-    float area = ((Ax * (By - Cy)) + (Bx * (Cy - Ay)) + (Cx * (Ay - By))) / (float)2.0;
-    return area;
-}
-
-bool FindUvOverlaps::checkShellIntersection(UvShell& s1, UvShell& s2)
-{
-    bool uIntersection = true;
-    bool vIntersection = true;
-
-    if (s1.uMax < s2.uMin || s1.uMin > s2.uMax) {
-        uIntersection = false;
-    }
-    if (s1.vMax < s2.vMin || s1.vMin > s2.vMax) {
-        vIntersection = false;
-    }
-    if (uIntersection == false || vIntersection == false) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
-bool FindUvOverlaps::checkCrossingNumber(float& u, float& v, std::vector<int>& uvIds)
-{
-    float u_current, v_current;
-    float u_next, v_next;
-    float area1, area2;
-    float u2 = u + (float)10.0;
-    bool isCrossingA;
-    bool isCrossingB;
-    int polygonVertexCount = (int)uvIds.size();
-    int numIntersections = 0;
-
-    for (int currentIndex = 0; currentIndex < polygonVertexCount; currentIndex++) {
-        isCrossingA = true;
-        isCrossingB = true;
-        u_current = uArray[uvIds[currentIndex]];
-        v_current = vArray[uvIds[currentIndex]];
-        if (currentIndex == polygonVertexCount - 1) {
-            u_next = uArray[uvIds[0]];
-            v_next = vArray[uvIds[0]];
-        } else {
-            u_next = uArray[uvIds[currentIndex + 1]];
-            v_next = vArray[uvIds[currentIndex + 1]];
-        }
-
-        // If parallel edges
-        if (v == v_current && v == v_next)
-            continue;
-
-        // If upward edges
-        if (v_current < v_next)
-            if (v == v_next)
-                continue;
-
-        // If downward edges
-        if (v_current > v_next)
-            if (v == v_current)
-                continue;
-
-        area1 = getTriangleArea(u, v, u_current, v_current, u2, v);
-        area2 = getTriangleArea(u, v, u_next, v_next, u2, v);
-        if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
-            isCrossingA = false;
-        }
-        area1 = getTriangleArea(u_current, v_current, u, v, u_next, v_next);
-        area2 = getTriangleArea(u_current, v_current, u2, v, u_next, v_next);
-        if ((area1 > 0.0 && area2 > 0.0) || (area1 < 0.0 && area2 < 0.0)) {
-            isCrossingB = false;
-        }
-        if (isCrossingA == true && isCrossingB == true) {
-            numIntersections++;
-        }
-    }
-
-    if ((numIntersections % 2) != 0) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-MStatus FindUvOverlaps::createShellTaskData(UvShell& shellA,
-    UvShell& shellB,
-    MString& uvSet,
-    std::unordered_map<int, std::vector<int>>& uvMap)
-{
-    MStatus stat = MThreadPool::init();
-    if (MStatus::kSuccess != stat) {
-        MString str = MString("Error creating threadpool");
-        MGlobal::displayError(str);
-        return MS::kFailure;
-    }
-
-    shellTaskDataTag shellTaskData;
-    shellTaskData.shellA = &shellA;
-    shellTaskData.shellB = &shellB;
-    shellTaskData.uvSet = uvSet;
-    shellTaskData.uvMap = &uvMap;
-
-    MThreadPool::newParallelRegion(createShellThreadData, (void*)&shellTaskData);
-    MThreadPool::release();
-
-    // Append bad polygons found in each thread to the final result array
-    std::unordered_set<int>::iterator resultSetIter;
-    for (resultSetIter = shellTaskData.resultIndexSet.begin(); resultSetIter != shellTaskData.resultIndexSet.end(); ++resultSetIter) {
-        shellIntersectionsResult.append(*resultSetIter);
-    }
-
-    return MS::kSuccess;
-}
-
-MStatus FindUvOverlaps::createTaskData(int numPolygons, MString& uvSet)
-{
-    MStatus stat = MThreadPool::init();
-    if (MStatus::kSuccess != stat) {
-        MString str = MString("Error creating threadpool");
-        MGlobal::displayError(str);
-        return MS::kFailure;
-    }
-
-    taskDataTag taskData;
-    taskData.start = 0;
-    taskData.end = numPolygons - 1;
-    taskData.uvSet = uvSet;
-    taskData.boolArray = new int[numPolygons]();
-    MThreadPool::newParallelRegion(createThreadData, (void*)&taskData);
-
-    // pool is reference counted. Release reference to current thread instance
-    MThreadPool::release();
-
-    // release reference to whole pool which deletes all threads
-    delete[] taskData.boolArray;
-
-    // std::cout << "size of array" << taskData.resultIndexArray.length() << std::endl;
-    if (taskData.innerIntersections.length() != 0) {
-        for (unsigned int i = 0; i < taskData.innerIntersections.length(); i++) {
-            innerIntersectionsResult.copy(taskData.innerIntersections);
-        }
-    }
-
-    return MS::kSuccess;
-}
-
-void FindUvOverlaps::createShellThreadData(void* data, MThreadRootTask* root)
-{
-    shellTaskDataTag* shellTaskData = (shellTaskDataTag*)data;
-    shellThreadDataTag shellThreadData[NUM_TASKS];
-
-    int numBorderPoints = (int)shellTaskData->shellA->borderUvPoints.size();
-    int taskLength = (numBorderPoints + NUM_TASKS - 1) / NUM_TASKS;
-    int start = 0;
-    int end = taskLength;
-    int lastTask = NUM_TASKS - 1;
-
-    for (int i = 0; i < NUM_TASKS; ++i) {
-        if (i == lastTask) {
-            end = numBorderPoints;
-        }
-        shellThreadData[i].start = start;
-        shellThreadData[i].end = end;
-        shellThreadData[i].shellTaskData = shellTaskData;
-
-        start += taskLength;
-        end += taskLength;
-
-        MThreadPool::createTask(findShellIntersectionsMT, (void*)&shellThreadData[i], root);
-    }
-    MThreadPool::executeAndJoin(root);
-
-    std::unordered_set<int> resultSet;
-    for (int i = 0; i < NUM_TASKS; i++) {
-        std::vector<int>& result = shellThreadData[i].result;
-        if (result.size() == 0) {
-            continue;
-        } else {
-            std::vector<int>::iterator itVec;
-            for (itVec = result.begin(); itVec != result.end(); ++itVec) {
-                shellTaskData->resultIndexSet.insert(*itVec);
-            }
-        }
-    }
-}
-
-void FindUvOverlaps::createThreadData(void* data, MThreadRootTask* root)
-{
-    taskDataTag* taskD = (taskDataTag*)data;
-    threadDataTag threadData[NUM_TASKS];
-
-    int numFaces = taskD->end + 1;
-    int taskLength = (numFaces + NUM_TASKS - 1) / NUM_TASKS;
-    int start = 0;
-    int end = taskLength;
-    int lastTask = NUM_TASKS - 1;
-
-    for (int i = 0; i < NUM_TASKS; ++i) {
-        if (i == lastTask) {
-            end = numFaces;
-        }
-        threadData[i].start = start;
-        threadData[i].end = end;
-        threadData[i].taskData = taskD;
-
-        start += taskLength;
-        end += taskLength;
-
-        MThreadPool::createTask(findInnerIntersectionsMT, (void*)&threadData[i], root);
-    }
-
-    MThreadPool::executeAndJoin(root);
-
-    for (int i = 0; i < numFaces; i++) {
-        if (taskD->boolArray[i] == 1) {
-            taskD->innerIntersections.append(i);
-        }
-    }
-}
-
-MThreadRetVal FindUvOverlaps::findShellIntersectionsMT(void* data)
-{
-    shellThreadDataTag* threadData = (shellThreadDataTag*)data;
-    std::vector<int>& borderUVs = threadData->shellTaskData->shellA->borderUvPoints;
-    float u, v;
-    MFnMesh fnMesh(mDagPath);
-    MString* uvSetPtr = &(threadData->shellTaskData->uvSet);
-
-    for (int i = threadData->start; i < threadData->end; i++) {
-        fnMesh.getUV(borderUVs[i], u, v, uvSetPtr);
-
-        float& uMin = threadData->shellTaskData->shellB->uMin;
-        float& uMax = threadData->shellTaskData->shellB->uMax;
-        float& vMin = threadData->shellTaskData->shellB->vMin;
-        float& vMax = threadData->shellTaskData->shellB->vMax;
-
-        if (u < uMin || u > uMax) {
-            continue;
-        }
-        if (v < vMin || v > vMax) {
-            continue;
-        }
-
-        std::unordered_set<int>::iterator polygonIter;
-        for (polygonIter = threadData->shellTaskData->shellB->polygonIDs.begin(); polygonIter != threadData->shellTaskData->shellB->polygonIDs.end(); ++polygonIter) {
-            bool isInPolygon = checkCrossingNumber(
-                u,
-                v,
-                threadData->shellTaskData->uvMap->operator[](*polygonIter));
-            if (isInPolygon == true) {
-                threadData->result.push_back(*polygonIter);
-                break;
-            }
-        }
-    }
-
-    return (MThreadRetVal)0;
-}
-
-MStatus FindUvOverlaps::findShellIntersectionsST(UvShell& shellA,
-    UvShell& shellB,
-    MString* uvSetPtr,
-    std::unordered_map<int, std::vector<int>>& uvMap,
-    std::vector<bool>& resultBoolVector)
-{
-    std::vector<int>& borderUVs = shellA.borderUvPoints;
-    for (int i = 0; i < borderUVs.size(); i++) {
-        float u, v;
-        fnMesh.getUV(borderUVs[i], u, v, uvSetPtr);
-
-        if (u < shellB.uMin || u > shellB.uMax) {
-            continue;
-        }
-        if (v < shellB.vMin || v > shellB.vMax) {
-            continue;
-        }
-        std::unordered_set<int>::iterator polygonIter;
-        for (polygonIter = shellB.polygonIDs.begin(); polygonIter != shellB.polygonIDs.end(); ++polygonIter) {
-            bool isInPolygon = checkCrossingNumber(u, v, uvMap.operator[](*polygonIter));
-            if (isInPolygon == true) {
-                resultBoolVector[*polygonIter] = true;
-                break;
-            }
-        }
-    }
-
-    return MS::kSuccess;
-}
-
-MThreadRetVal FindUvOverlaps::findInnerIntersectionsMT(void* data)
-{
-    MStatus status;
-    threadDataTag* threadData = (threadDataTag*)data;
-
-    MFnMesh fnMesh(mDagPath);
-
-    MString* uvSetPtr = &(threadData->taskData->uvSet);
-
-    int vertexList[3];
-    MIntArray vertexIdArray;
-    std::unordered_map<int, int> localVtxIdMap;
-
-    for (int faceId = threadData->start; faceId < threadData->end; faceId++) {
-        fnMesh.getPolygonVertices(faceId, vertexIdArray);
-        int numTriangles = vertexIdArray.length() - 2;
-
-        for (unsigned int localId = 0; localId < vertexIdArray.length(); localId++) {
-            localVtxIdMap[vertexIdArray[localId]] = localId;
-        }
-
-        for (int triId = 0; triId < numTriangles; triId++) {
-            UvPoint uvPointArray[3];
-            fnMesh.getPolygonTriangleVertices(faceId, triId, vertexList);
-            float u;
-            float v;
-            for (int vtx = 0; vtx < 3; vtx++) {
-                int localIndex = localVtxIdMap[vertexList[vtx]];
-                status = fnMesh.getPolygonUV(faceId, localIndex, u, v, uvSetPtr);
-                if (status == MS::kFailure)
-                    goto NEXT_FACE;
-                uvPointArray[vtx].u = u;
-                uvPointArray[vtx].v = v;
-            }
-
-            float& Ax = uvPointArray[0].u;
-            float& Ay = uvPointArray[0].v;
-            float& Bx = uvPointArray[1].u;
-            float& By = uvPointArray[1].v;
-            float& Cx = uvPointArray[2].u;
-            float& Cy = uvPointArray[2].v;
-            float area = ((Ax * (By - Cy)) + (Bx * (Cy - Ay)) + (Cx * (Ay - By))) / 2;
-
-            if (area < 0) {
-                threadData->taskData->boolArray[faceId] = 1;
-            }
-        }
-        NEXT_FACE:
-        ;
-    }
-    return (MThreadRetVal)0;
-}
-
-MStatus FindUvOverlaps::doIt(const MArgList& args)
-{
-    MStatus status;
-
-    MSelectionList sel;
-
-    MArgDatabase argData(syntax(), args);
-
-    status = argData.getCommandArgument(0, sel);
-    if (status != MS::kSuccess) {
-        MGlobal::displayError("You have to provide an object path");
-        return MStatus::kFailure;
-    }
-
-    sel.getDagPath(0, mDagPath);
-    fnMesh.setObject(mDagPath);
-
-    if (argData.isFlagSet("-verbose"))
-        argData.getFlagArgument("-verbose", 0, verbose);
-    else
-        verbose = false;
-
-    if (argData.isFlagSet("-multiThread"))
-        argData.getFlagArgument("-multiThread", 0, isMultiThreaded);
-    else
-        isMultiThreaded = false;
-
-    if (argData.isFlagSet("-uvSet"))
-        argData.getFlagArgument("-uvSet", 0, uvSet);
-    else
-        fnMesh.getCurrentUVSetName(uvSet);
-
-    if (verbose == true) {
-        MString objectPath = "Selected mesh : " + mDagPath.fullPathName();
-        MGlobal::displayInfo(objectPath);
-    }
-
-    status = mDagPath.extendToShape();
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-
-    if (mDagPath.apiType() != MFn::kMesh) {
-        MGlobal::displayError("Selected object is not mesh.");
-        return MStatus::kFailure;
-    }
-
-    return redoIt();
-}
-
-MStatus FindUvOverlaps::redoIt()
-{
-    MStatus status;
-
-    // Setup timer
-    MTimer timer;
-    double timerResult1;
-    double timerResult2;
-
-    // Get basic mesh information
-    int numFaces = fnMesh.numPolygons();
-    int numUVs = fnMesh.numUVs(uvSet);
-    int numVerts = fnMesh.numVertices();
-    MString fullPath = mDagPath.fullPathName();
-
-    // run multithread for self intersection check
-    if (verbose) {
-        MGlobal::displayInfo("Checking internal self intersections.");
-    }
-
-    timer.beginTimer();
-    status = createTaskData(numFaces, uvSet);
-    timer.endTimer();
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-
-    // Setup result for self intersections
-    for (unsigned int i = 0; i < innerIntersectionsResult.length(); i++) {
-        MString index;
-        index.set(innerIntersectionsResult[i]);
-        MString n = fullPath + ".f[" + index + "]";
-        resultStrArray.append(n);
-    }
-
-    if (verbose) {
-        timerResult1 = timer.elapsedTime();
-        MString timeStr;
-        timeStr.set(timerResult1);
-        MGlobal::displayInfo("Finished self intersection check.");
-        MString r = "Result : " + timeStr + " seconds.";
-        MGlobal::displayInfo(r);
-    }
-
-    // getUvShellsIds function gives wrong number of uv shells when accessing
-    // to non-current uvSets. So just trying to switch uvSets here 
-    MString currentUvSet = fnMesh.currentUVSetName();
-    if (uvSet == currentUvSet) {
-    }
-    else {
-        fnMesh.setCurrentUVSetName(uvSet);
-    }
-
-    // Get UV shell info
-    MIntArray uvShellIds;
-    unsigned int numUVshells;
-    status = fnMesh.getUvShellsIds(uvShellIds, numUVshells, &uvSet);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-
-    if (numUVshells == 1) {
-        if (verbose) {
-            MGlobal::displayInfo("No multiple shells are found.");
-        }
-    } else {
-        if (verbose) {
-            MGlobal::displayInfo("Multiple UV shells are found. Running Shell intersection checks.");
-        }
-        // Timer for shell intersection check
-        timer.beginTimer();
-
-        // Setup uv shell objects
-        std::vector<UvShell> uvShellArray;
-        uvShellArray.resize(numUVshells);
-        for (unsigned int i = 0; i < numUVshells; i++) {
-            UvShell shell;
-            uvShellArray[i] = shell;
-        }
-
-        // Add polygonIDs to each UV shell
-        MIntArray uvIndexArray;
-        MIntArray connectedFacesArray;
-        int numUniUv;
-
-        for (MItMeshVertex itVerts(mDagPath); !itVerts.isDone(); itVerts.next()) {
-            itVerts.numUVs(numUniUv, &uvSet);
-            if (numUniUv == 0) {
-                // If number of unique UV is zero, this vertex doesn't have
-                // assgined UV
-                continue;
-            }
-
-            itVerts.getUVIndices(uvIndexArray, &uvSet);
-
-            for (int i2=0; i2<uvIndexArray.length(); i2++) {
-                int uvIndex = uvIndexArray[i2];
-                if (uvIndex == -1) {
-                    // If it's -1, that means this vertex is connected to a face
-                    // which doesn't have assigned UV
-                    continue;
-                }
-                else {
-                    int shellNumber = uvShellIds[uvIndex];
-                    if (numUniUv == 1) {
-                        // If current vertex has only 1 UV point, its UV is inside of a UV shell
-                        // Get and insert polygon IDs to the shell
-                        itVerts.getConnectedFaces(connectedFacesArray);
-                        for (unsigned int f = 0; f < connectedFacesArray.length(); f++) {
-                            int connectedFaceID = connectedFacesArray[f];
-                            uvShellArray[shellNumber].polygonIDs.insert(connectedFaceID);
-                        }
-                    }
-                    else {
-                        // If current vertex has multiple UV points, its UVs are on a shell border
-                        uvShellArray[shellNumber].borderUvPoints.push_back(uvIndex);
-                    }
-                }
-            }
-        }
-
-        // Get UV values
-        status = fnMesh.getUVs(uArray, vArray, &uvSet);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-
-        MIntArray uvCounts;
-        MIntArray uvIds;
-        fnMesh.getAssignedUVs(uvCounts, uvIds, &uvSet);
-        std::unordered_map<int, std::vector<int>> uvMap;
-        int counter = 0;
-        for (unsigned int i = 0; i < uvCounts.length(); i++) {
-            int count = uvCounts[i];
-            std::vector<int> uvs(count);
-            for (int c = 0; c < count; c++) {
-                uvs[c] = uvIds[counter];
-                counter++;
-            }
-            uvMap[i] = uvs;
-        }
-
-        for (int i = 0; i < numUVs; i++) {
-            UvPoint p(uArray[i], vArray[i], i, uvShellIds[i]);
-            uvShellArray[uvShellIds[i]].uvPoints.push_back(p);
-            uvShellArray[uvShellIds[i]].uVector.push_back(uArray[i]);
-            uvShellArray[uvShellIds[i]].vVector.push_back(vArray[i]);
-        }
-
-        // Get min and max for each bounding box
-        for (unsigned int i = 0; i < numUVshells; i++) {
-            UvShell& shell = uvShellArray[i];
-            shell.uMax = *std::max_element(shell.uVector.begin(), shell.uVector.end());
-            shell.uMin = *std::min_element(shell.uVector.begin(), shell.uVector.end());
-            shell.vMax = *std::max_element(shell.vVector.begin(), shell.vVector.end());
-            shell.vMin = *std::min_element(shell.vVector.begin(), shell.vVector.end());
-        }
-
-        // comments here
-        std::vector<std::vector<int>> shellCombVec;
-        combination(numUVshells, shellCombVec);
-
-        // Initialize bool vector for shell intersection result
-        resultBoolVector.resize(numFaces);
-        std::fill(resultBoolVector.begin(), resultBoolVector.end(), false);
-
-        for (int i = 0; i < shellCombVec.size(); i++) {
-            int& shellIndexA = shellCombVec[i][0];
-            int& shellIndexB = shellCombVec[i][1];
-            UvShell& shellA = uvShellArray[shellIndexA];
-            UvShell& shellB = uvShellArray[shellIndexB];
-        
-            bool isIntersected = checkShellIntersection(shellA, shellB);
-        
-            if (isIntersected == true) {
-                if (isMultiThreaded) {
-                    status = createShellTaskData(shellA, shellB, uvSet, uvMap);
-                    CHECK_MSTATUS_AND_RETURN_IT(status);
-                    status = createShellTaskData(shellB, shellA, uvSet, uvMap);
-                    CHECK_MSTATUS_AND_RETURN_IT(status);
-                } else {
-                    status = findShellIntersectionsST(shellA, shellB, &uvSet, uvMap, resultBoolVector);
-                    CHECK_MSTATUS_AND_RETURN_IT(status);
-                    status = findShellIntersectionsST(shellB, shellA, &uvSet, uvMap, resultBoolVector);
-                    CHECK_MSTATUS_AND_RETURN_IT(status);
-                }
-            } else {
-            }
-        }
-
-        timer.endTimer();
-        if (verbose) {
-            timerResult2 = timer.elapsedTime();
-            MString timeStr;
-            timeStr.set(timerResult2);
-            MGlobal::displayInfo("Finished shell intersection check.");
-            MString r = "Result : " + timeStr + " seconds.";
-            MGlobal::displayInfo(r);
-        }
-        if (isMultiThreaded) {
-            for (unsigned int i = 0; i < shellIntersectionsResult.length(); i++) {
-                MString index;
-                index.set(shellIntersectionsResult[i]);
-                MString n = fullPath + ".f[" + index + "]";
-                resultStrArray.append(n);
-            }
-        } else {
-            MString index;
-            for (int x = 0; x < numFaces; x++) {
-                if (resultBoolVector[x] == true) {
-                    index.set(x);
-                    MString n = fullPath + ".f[" + index + "]";
-                    resultStrArray.append(n);
-                }
-            }
-        }
-    }
-
-    // Switch back to the initial uv set
-    fnMesh.setCurrentUVSetName(currentUvSet);
-
-    MPxCommand::setResult(resultStrArray);
-
-    if (verbose) {
-        double resultTotal = timerResult1 + timerResult2;
-        MString resultTotalStr;
-        resultTotalStr.set(resultTotal);
-        MString r = "Result Total: " + resultTotalStr + " seconds.";
-        MGlobal::displayInfo(r);
-    }
-
-    return MS::kSuccess;
-}
-
-MStatus FindUvOverlaps::undoIt()
+MStatus FindUvOverlaps2::undoIt()
 {
     return MS::kSuccess;
 }
 
-bool FindUvOverlaps::isUndoable() const
+bool FindUvOverlaps2::isUndoable() const
 {
     return false;
 }
 
-void* FindUvOverlaps::creator()
+void* FindUvOverlaps2::creator()
 {
-    return new FindUvOverlaps;
+    return new FindUvOverlaps2;
 }
