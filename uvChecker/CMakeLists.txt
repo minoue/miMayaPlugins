@@ -11,10 +11,10 @@ set(SOURCE_FILES
         src/uvEdge.h
         src/uvShell.cpp
         src/uvShell.h
+        src/findUvOverlaps_old.cpp
+        src/findUvOverlaps_old.h
         src/findUvOverlaps.cpp
         src/findUvOverlaps.h
-        src/findUvOverlaps2.cpp
-        src/findUvOverlaps2.h
         src/event.cpp
         src/event.h
         src/testCase.cpp
