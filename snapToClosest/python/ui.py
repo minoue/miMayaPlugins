@@ -14,11 +14,24 @@ def getMayaWindow():
 
 class SnapWindow(QtWidgets.QWidget):
 
+    def closeExistingWindow(self):
+        """ Close window if exists """
+
+        for qt in QtWidgets.QApplication.topLevelWidgets():
+            try:
+                if qt.__class__.__name__ == self.__class__.__name__:
+                    qt.close()
+            except:
+                pass
+
     def __init__(self, parent=getMayaWindow()):
+        self.closeExistingWindow()
+
         super(SnapWindow, self).__init__(parent)
 
         self.setWindowTitle("Snap")
-        self.setWindowFlags(QtCore.Qt.Tool)
+        self.setWindowFlags(QtCore.Qt.Window)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         self.createUI()
         self.layoutUI()
@@ -48,9 +61,19 @@ class SnapWindow(QtWidgets.QWidget):
         self.distanceLock = QtWidgets.QCheckBox("Lock")
         self.distanceLock.stateChanged.connect(self.lockDistance)
 
+        self.customVectorCheck = QtWidgets.QCheckBox("Use custom vector")
+        self.customVectorCheck.stateChanged.connect(
+            self.changeCustomVectorState)
+        self.customVectorX = QtWidgets.QLineEdit("0")
+        self.customVectorY = QtWidgets.QLineEdit("0")
+        self.customVectorZ = QtWidgets.QLineEdit("0")
+        self.customVectorX.setEnabled(False)
+        self.customVectorY.setEnabled(False)
+        self.customVectorZ.setEnabled(False)
+
         self.snapButton = QtWidgets.QPushButton("Snap")
         self.snapButton.setFixedHeight(40)
-        self.snapButton.clicked.connect(self.snap)
+        self.snapButton.clicked.connect(self.changeCustomVectorState)
 
     def layoutUI(self):
         topLayout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
@@ -70,13 +93,30 @@ class SnapWindow(QtWidgets.QWidget):
         distLayout.addWidget(self.distanceLE)
         distLayout.addWidget(self.distanceLock)
 
+        cvLayout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
+        cvLayout.addWidget(self.customVectorCheck)
+        cvLayout.addWidget(self.customVectorX)
+        cvLayout.addWidget(self.customVectorY)
+        cvLayout.addWidget(self.customVectorZ)
+
         mainLayout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
         mainLayout.addLayout(topLayout)
         mainLayout.addLayout(modeLayout)
         mainLayout.addLayout(distLayout)
+        mainLayout.addLayout(cvLayout)
         mainLayout.addWidget(self.snapButton)
 
         self.setLayout(mainLayout)
+
+    def changeCustomVectorState(self):
+        if self.customVectorCheck.checkState() == QtCore.Qt.CheckState.Checked:
+            self.customVectorX.setEnabled(True)
+            self.customVectorY.setEnabled(True)
+            self.customVectorZ.setEnabled(True)
+        else:
+            self.customVectorX.setEnabled(False)
+            self.customVectorY.setEnabled(False)
+            self.customVectorZ.setEnabled(False)
 
     def lock(self):
         if self.lockCheckBox.checkState() == QtCore.Qt.CheckState.Checked:
