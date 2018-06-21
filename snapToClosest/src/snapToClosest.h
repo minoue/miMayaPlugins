@@ -24,9 +24,7 @@
 #include <maya/MSelectionList.h>
 #include <maya/MSyntax.h>
 #include <maya/MPointArray.h>
-
-
-using namespace std;
+#include <maya/MVector.h>
 
 
 class SnapToClosest : public MPxCommand
@@ -54,6 +52,11 @@ private:
     bool                dummyBool;
     double              searchDistance;
     MString             mode;
+    bool                useCustomVector;
+    MVector             customVector;
+    double              customVectorX;
+    double              customVectorY;
+    double              customVectorZ;
 };
 
 #endif /* defined(__snapCmd__snapToClosest__) */

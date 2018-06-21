@@ -20,7 +20,6 @@
 #include <maya/MPoint.h>
 #include <maya/MFloatPoint.h>
 #include <maya/MFloatVector.h>
-#include <maya/MVector.h>
 #include <maya/MArgDatabase.h>
 #include <maya/MMeshIntersector.h>
 #include <maya/MMatrix.h>
@@ -30,10 +29,18 @@ using namespace std;
 
 
 // Flags for this command
-static const char * modeFlag            = "-m";
-static const char * modeFlagLong        = "-mode";
-static const char * distanceFlag        = "-d";
-static const char * distanceFlagLong    = "-searchDistance";
+static const char * modeFlag                    = "-m";
+static const char * modeFlagLong                = "-mode";
+static const char * distanceFlag                = "-d";
+static const char * distanceFlagLong            = "-searchDistance";
+static const char * customVectorFlag            = "-cv";
+static const char * customVectorFlagLong        = "-customVector";
+static const char * customVectorFlagX           = "-cvx";
+static const char * customVectorFlagXLong       = "-customVectorX";
+static const char * customVectorFlagY           = "-cvy";
+static const char * customVectorFlagYLong       = "-customVectorY";
+static const char * customVectorFlagZ           = "-cvz";
+static const char * customVectorFlagZLong       = "-customVectorZ";
 
 
 // Constructor   
@@ -62,6 +69,11 @@ MSyntax SnapToClosest::newSyntax() {
 
     status = syntax.addFlag(distanceFlag, distanceFlagLong, MSyntax::kDouble);
     CHECK_MSTATUS_AND_RETURN(status, syntax);
+
+    syntax.addFlag(customVectorFlag, customVectorFlagLong, MSyntax::kBoolean);
+    syntax.addFlag(customVectorFlagX, customVectorFlagXLong, MSyntax::kDouble);
+    syntax.addFlag(customVectorFlagY, customVectorFlagYLong, MSyntax::kDouble);
+    syntax.addFlag(customVectorFlagZ, customVectorFlagZLong, MSyntax::kDouble);
 
     syntax.enableEdit(false);
     syntax.enableQuery(false);
@@ -93,6 +105,36 @@ MStatus SnapToClosest::doIt( const MArgList& args)
         return MStatus::kFailure;
     }
     CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    if (argData.isFlagSet(customVectorFlagLong)){
+        argData.getFlagArgument(customVectorFlagLong, 0, useCustomVector);
+    } else {
+        useCustomVector = false;
+    }
+
+    if (useCustomVector == true) {
+        if (argData.isFlagSet(customVectorFlagXLong)) {
+            argData.getFlagArgument(customVectorFlagXLong, 0, customVectorX);
+        } else {
+            MGlobal::displayInfo("No x is given");
+            return MS::kFailure;
+        }
+        if (argData.isFlagSet(customVectorFlagYLong)) {
+            argData.getFlagArgument(customVectorFlagYLong, 0, customVectorY);
+        } else {
+            MGlobal::displayInfo("No y is given");
+            return MS::kFailure;
+        }
+        if (argData.isFlagSet(customVectorFlagZLong)) {
+            argData.getFlagArgument(customVectorFlagZLong, 0, customVectorZ);
+        } else {
+            MGlobal::displayInfo("No z is given");
+            return MS::kFailure;
+        }
+        customVector.x = customVectorX;
+        customVector.y = customVectorY;
+        customVector.z = customVectorZ;
+    }
 
     MGlobal::getActiveSelectionList(mList);
 
@@ -198,7 +240,13 @@ MStatus SnapToClosest::redoIt()
         // In normal mode, add cloest point along normal vector.
         } else if ( mode == "normal" ) {
             MVector normalVector;
-            vIter.getNormal(normalVector, MSpace::kWorld);
+            if (useCustomVector) {
+                normalVector.x = customVectorX;
+                normalVector.y = customVectorY;
+                normalVector.z = customVectorZ;
+            } else {
+                vIter.getNormal(normalVector, MSpace::kWorld);
+            }
             normalVector.normalize();
 
             MFloatPoint         raySource(currentPosition);
