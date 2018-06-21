@@ -73,7 +73,7 @@ class SnapWindow(QtWidgets.QWidget):
 
         self.snapButton = QtWidgets.QPushButton("Snap")
         self.snapButton.setFixedHeight(40)
-        self.snapButton.clicked.connect(self.changeCustomVectorState)
+        self.snapButton.clicked.connect(self.snap)
 
     def layoutUI(self):
         topLayout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
@@ -149,6 +149,7 @@ class SnapWindow(QtWidgets.QWidget):
             print "not int!!!!"
             return
 
+        print 'aa'
         cmds.snapToClosest(
             target,
             mode=snapMode,
