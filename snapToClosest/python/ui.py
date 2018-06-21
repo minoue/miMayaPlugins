@@ -149,7 +149,6 @@ class SnapWindow(QtWidgets.QWidget):
             print "not int!!!!"
             return
 
-        print 'aa'
         cmds.snapToClosest(
             target,
             mode=snapMode,
