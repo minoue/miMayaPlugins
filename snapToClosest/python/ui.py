@@ -149,10 +149,20 @@ class SnapWindow(QtWidgets.QWidget):
             print "not int!!!!"
             return
 
-        cmds.snapToClosest(
-            target,
-            mode=snapMode,
-            d=maxDist)
+        if self.customVectorCheck.checkState() == QtCore.Qt.CheckState.Checked:
+            nx = float(self.customVectorX.text())
+            ny = float(self.customVectorY.text())
+            nz = float(self.customVectorZ.text())
+            cmds.snapToClosest(
+                target,
+                mode=snapMode,
+                d=maxDist,
+                cv=True,
+                cvx=nx,
+                cvy=ny,
+                cvz=nz)
+        else:
+            cmds.snapToClosest(target, mode=snapMode, d=maxDist)
 
     def setter(self):
         self.lineEdit.setText(cmds.ls(sl=True, fl=True, long=True)[0])
