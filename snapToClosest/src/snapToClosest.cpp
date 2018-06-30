@@ -41,21 +41,18 @@ static const char * customVectorFlagY           = "-cvy";
 static const char * customVectorFlagYLong       = "-customVectorY";
 static const char * customVectorFlagZ           = "-cvz";
 static const char * customVectorFlagZLong       = "-customVectorZ";
+static const char * testBothDirectionsFlag      = "-tbd";
+static const char * testBothDirectionsFlagLong  = "-testBothDirections";
 
 
-// Constructor   
 SnapToClosest::SnapToClosest() : 
     dummyBool(true),
     searchDistance(1000)
 {}
 
-
-// Destructor
 SnapToClosest::~SnapToClosest() {
 }
 
-
-// Syntax for the command arguments
 MSyntax SnapToClosest::newSyntax() {
 
     MSyntax syntax;
@@ -74,6 +71,7 @@ MSyntax SnapToClosest::newSyntax() {
     syntax.addFlag(customVectorFlagX, customVectorFlagXLong, MSyntax::kDouble);
     syntax.addFlag(customVectorFlagY, customVectorFlagYLong, MSyntax::kDouble);
     syntax.addFlag(customVectorFlagZ, customVectorFlagZLong, MSyntax::kDouble);
+    syntax.addFlag(testBothDirectionsFlag, testBothDirectionsFlagLong, MSyntax::kBoolean);
 
     syntax.enableEdit(false);
     syntax.enableQuery(false);
@@ -112,6 +110,12 @@ MStatus SnapToClosest::doIt( const MArgList& args)
         useCustomVector = false;
     }
 
+    if (argData.isFlagSet(testBothDirectionsFlag)) {
+        argData.getFlagArgument(testBothDirectionsFlagLong, 0, testBothDirections);
+    } else {
+        testBothDirections = false;
+    }
+
     if (useCustomVector == true) {
         if (argData.isFlagSet(customVectorFlagXLong)) {
             argData.getFlagArgument(customVectorFlagXLong, 0, customVectorX);
@@ -119,12 +123,14 @@ MStatus SnapToClosest::doIt( const MArgList& args)
             MGlobal::displayInfo("No x is given");
             return MS::kFailure;
         }
+
         if (argData.isFlagSet(customVectorFlagYLong)) {
             argData.getFlagArgument(customVectorFlagYLong, 0, customVectorY);
         } else {
             MGlobal::displayInfo("No y is given");
             return MS::kFailure;
         }
+
         if (argData.isFlagSet(customVectorFlagZLong)) {
             argData.getFlagArgument(customVectorFlagZLong, 0, customVectorZ);
         } else {
@@ -261,7 +267,7 @@ MStatus SnapToClosest::redoIt()
                 false,
                 MSpace::kWorld,
                 999999,
-                false,
+                testBothDirections,
                 0,
                 hitPoint,
                 0,
