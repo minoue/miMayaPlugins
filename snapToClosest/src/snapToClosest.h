@@ -57,6 +57,7 @@ private:
     double              customVectorX;
     double              customVectorY;
     double              customVectorZ;
+    bool                testBothDirections;
 };
 
 #endif /* defined(__snapCmd__snapToClosest__) */
