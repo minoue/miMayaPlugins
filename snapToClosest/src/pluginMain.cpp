@@ -1,8 +1,3 @@
-//
-//  pluginMain.cpp
-//  SnapToClosest
-//
-//
 // ----------------------------------------------------------------------------
 // "THE BEER-WARE LICENSE" (Revision 42):
 // <michitaka_inoue@icloud.com> wrote this file.  As long as you retain this notice you
@@ -11,22 +6,19 @@
 // ----------------------------------------------------------------------------
 //
 
-
-#include <maya/MFnPlugin.h>
 #include "snapToClosest.h"
-
+#include <maya/MFnPlugin.h>
 
 MStatus initializePlugin(MObject mObj)
 {
     MStatus status;
 
-    MFnPlugin fnPlugin(mObj, "Michitaka Inoue", "0.0.1", "Any");
+    MFnPlugin fnPlugin(mObj, "Michitaka Inoue", "1.0.0", "Any");
 
     status = fnPlugin.registerCommand(
         "snapToClosest",
         SnapToClosest::creator,
-        SnapToClosest::newSyntax
-        );
+        SnapToClosest::newSyntax);
 
     CHECK_MSTATUS_AND_RETURN_IT(status);
     return MS::kSuccess;

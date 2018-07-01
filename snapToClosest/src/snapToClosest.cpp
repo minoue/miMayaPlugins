@@ -11,49 +11,48 @@
 // ----------------------------------------------------------------------------
 //
 
-
 #include "snapToClosest.h"
-#include <maya/MGlobal.h>
+#include <maya/MArgDatabase.h>
 #include <maya/MArgList.h>
-#include <maya/MItMeshVertex.h>
-#include <maya/MIntArray.h>
-#include <maya/MPoint.h>
 #include <maya/MFloatPoint.h>
 #include <maya/MFloatVector.h>
-#include <maya/MArgDatabase.h>
-#include <maya/MMeshIntersector.h>
+#include <maya/MGlobal.h>
+#include <maya/MIntArray.h>
+#include <maya/MItMeshVertex.h>
 #include <maya/MMatrix.h>
-
+#include <maya/MMeshIntersector.h>
+#include <maya/MPoint.h>
 
 using namespace std;
 
-
 // Flags for this command
-static const char * modeFlag                    = "-m";
-static const char * modeFlagLong                = "-mode";
-static const char * distanceFlag                = "-d";
-static const char * distanceFlagLong            = "-searchDistance";
-static const char * customVectorFlag            = "-cv";
-static const char * customVectorFlagLong        = "-customVector";
-static const char * customVectorFlagX           = "-cvx";
-static const char * customVectorFlagXLong       = "-customVectorX";
-static const char * customVectorFlagY           = "-cvy";
-static const char * customVectorFlagYLong       = "-customVectorY";
-static const char * customVectorFlagZ           = "-cvz";
-static const char * customVectorFlagZLong       = "-customVectorZ";
-static const char * testBothDirectionsFlag      = "-tbd";
-static const char * testBothDirectionsFlagLong  = "-testBothDirections";
+static const char* modeFlag = "-m";
+static const char* modeFlagLong = "-mode";
+static const char* distanceFlag = "-d";
+static const char* distanceFlagLong = "-searchDistance";
+static const char* customVectorFlag = "-cv";
+static const char* customVectorFlagLong = "-customVector";
+static const char* customVectorFlagX = "-cvx";
+static const char* customVectorFlagXLong = "-customVectorX";
+static const char* customVectorFlagY = "-cvy";
+static const char* customVectorFlagYLong = "-customVectorY";
+static const char* customVectorFlagZ = "-cvz";
+static const char* customVectorFlagZLong = "-customVectorZ";
+static const char* testBothDirectionsFlag = "-tbd";
+static const char* testBothDirectionsFlagLong = "-testBothDirections";
 
-
-SnapToClosest::SnapToClosest() : 
-    dummyBool(true),
-    searchDistance(1000)
-{}
-
-SnapToClosest::~SnapToClosest() {
+SnapToClosest::SnapToClosest()
+    : dummyBool(true)
+    , searchDistance(1000)
+{
 }
 
-MSyntax SnapToClosest::newSyntax() {
+SnapToClosest::~SnapToClosest()
+{
+}
+
+MSyntax SnapToClosest::newSyntax()
+{
 
     MSyntax syntax;
     MStatus status;
@@ -79,13 +78,12 @@ MSyntax SnapToClosest::newSyntax() {
     return syntax;
 }
 
-
-MStatus SnapToClosest::doIt( const MArgList& args)
+MStatus SnapToClosest::doIt(const MArgList& args)
 {
     MStatus status;
-    
+
     if (args.length() != 1) {
-		MGlobal::displayError("Need 2 argument.\n Target mesh and max searchDistance!\n eg. cmds.snapToClosest('|pSphere1', 100)\n");
+        MGlobal::displayError("Need 2 argument.\n Target mesh and max searchDistance!\n eg. cmds.snapToClosest('|pSphere1', 100)\n");
         return MStatus::kFailure;
     }
 
@@ -99,12 +97,12 @@ MStatus SnapToClosest::doIt( const MArgList& args)
     targetObjectName = args.asString(0, &status);
 
     if (status != MS::kSuccess) {
-		MGlobal::displayError("Failed to read arguments");
+        MGlobal::displayError("Failed to read arguments");
         return MStatus::kFailure;
     }
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    if (argData.isFlagSet(customVectorFlagLong)){
+    if (argData.isFlagSet(customVectorFlagLong)) {
         argData.getFlagArgument(customVectorFlagLong, 0, useCustomVector);
     } else {
         useCustomVector = false;
@@ -146,18 +144,17 @@ MStatus SnapToClosest::doIt( const MArgList& args)
 
     // If multiple objects are selected, fails
     if (mList.length() != 1) {
-		MGlobal::displayError("Multiple objects are selected. Select");
+        MGlobal::displayError("Multiple objects are selected. Select");
         return MStatus::kFailure;
     }
 
     return redoIt();
 }
 
-
 MStatus SnapToClosest::redoIt()
 {
     MStatus status;
-    
+
     mList.add(targetObjectName);
     mList.getDagPath(0, mDagPath_components, components);
     mList.getDagPath(1, mDagPath_target);
@@ -183,19 +180,19 @@ MStatus SnapToClosest::redoIt()
     intersector.create(targetMObj, matrix);
 
     // Iteration start
-    for ( ; !vIter.isDone(); vIter.next() ) {
+    for (; !vIter.isDone(); vIter.next()) {
 
         // Curent point position in MPoint
         MPoint currentPosition = vIter.position(MSpace::kWorld);
         MPoint closestPoint;
 
         // MVector to check the distance between current point and target point
-        MVector distanceVector;     
+        MVector distanceVector;
 
-        //current vertex index 
+        //current vertex index
         int currentIndex = vIter.index();
 
-        // polygon face ID 
+        // polygon face ID
         int faceIndex;
 
         MPointOnMesh pointInfo;
@@ -214,7 +211,7 @@ MStatus SnapToClosest::redoIt()
             // Get closest face 's vertices
             MIntArray faceVertexArray;
 
-            // Value to check 
+            // Value to check
             double shortestDistance = 10000;
 
             // MPoint closestVertex = currentPosition;
@@ -225,7 +222,7 @@ MStatus SnapToClosest::redoIt()
 
             // Loop face vertices and find a vertex which is closest to the
             // current vertex.
-            for (unsigned int i=0; i<faceVertexArray.length(); i++){
+            for (unsigned int i = 0; i < faceVertexArray.length(); i++) {
                 int vertexIndex = faceVertexArray[i];
                 MPoint pointPosition;
                 fnMeshTarget.getPoint(vertexIndex, pointPosition, MSpace::kWorld);
@@ -243,8 +240,8 @@ MStatus SnapToClosest::redoIt()
             // Set closest vertex to new vertex array
             newVertexArray[currentIndex] = closestVertex;
 
-        // In normal mode, add cloest point along normal vector.
-        } else if ( mode == "normal" ) {
+            // In normal mode, add cloest point along normal vector.
+        } else if (mode == "normal") {
             MVector normalVector;
             if (useCustomVector) {
                 normalVector.x = customVectorX;
@@ -255,9 +252,9 @@ MStatus SnapToClosest::redoIt()
             }
             normalVector.normalize();
 
-            MFloatPoint         raySource(currentPosition);
-            MFloatVector        rayDirection(normalVector);
-            MFloatPoint         hitPoint;
+            MFloatPoint raySource(currentPosition);
+            MFloatVector rayDirection(normalVector);
+            MFloatPoint hitPoint;
 
             fnMeshTarget.closestIntersection(
                 raySource,
@@ -279,19 +276,18 @@ MStatus SnapToClosest::redoIt()
             MPoint mHitPoint(hitPoint.x, hitPoint.y, hitPoint.z);
             distanceVector = mHitPoint - currentPosition;
 
-            if ( distanceVector.length() < searchDistance ) {
+            if (distanceVector.length() < searchDistance) {
                 newVertexArray[currentIndex] = mHitPoint;
             }
         }
 
         // In surface mode, simply add the closest point to the array
-        else if ( mode == "surface") {
+        else if (mode == "surface") {
             distanceVector = closestPoint - currentPosition;
-            if ( distanceVector.length() < searchDistance ) {
+            if (distanceVector.length() < searchDistance) {
                 newVertexArray[currentIndex] = closestPoint;
             }
-        }
-        else {
+        } else {
             MGlobal::displayError("*** WRONG MODE. USE 'vertex', 'normal', or 'surface'. ***");
             return MStatus::kFailure;
         }
@@ -301,17 +297,18 @@ MStatus SnapToClosest::redoIt()
     return status;
 }
 
-
-MStatus SnapToClosest::undoIt() {
+MStatus SnapToClosest::undoIt()
+{
     fnMeshComponents.setPoints(vertexArray, MSpace::kWorld);
     return MS::kSuccess;
 }
 
-bool SnapToClosest::isUndoable() const {
+bool SnapToClosest::isUndoable() const
+{
     return true;
 }
 
 void* SnapToClosest::creator()
 {
     return new SnapToClosest;
-}                                           
+}
