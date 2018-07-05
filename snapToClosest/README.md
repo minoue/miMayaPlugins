@@ -1,5 +1,13 @@
 # Snap to closest vertices/surface.
 
+## Build
+```
+mkdir build
+cd build
+cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DMAYA_VERSION=2015 ../
+cmake --build . --config Release --target install
+
+```
 
 ##  Flags
 
@@ -23,3 +31,5 @@ Snap selected vertices to specified closest vertex or surface.
 
 ```cmds.snapToClosest("Plane1", mode="vertex")```
 ![](https://raw.githubusercontent.com/wiki/minoue/miMayaUtils/images/vertex.gif)
+
+
