@@ -16,3 +16,10 @@ cmds.transferUV(suv="map1", tuv="map1")
 ## Restriction
 Two meshes have to have same point order/same number of vertices.
 
+## Build
+```
+mkdir build
+cd build
+cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DMAYA_VERSION=2017 ../
+cmake --build . --config Release --target install
+```
