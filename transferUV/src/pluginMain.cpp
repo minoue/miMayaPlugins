@@ -1,6 +1,5 @@
-#include <maya/MFnPlugin.h>
 #include "transferUV.h"
-
+#include <maya/MFnPlugin.h>
 
 MStatus initializePlugin(MObject mObj)
 {
@@ -14,4 +13,4 @@ MStatus uninitializePlugin(MObject mObj)
     MFnPlugin fnPlugin(mObj);
     fnPlugin.deregisterCommand("transferUV");
     return MS::kSuccess;
-}                               
+}
