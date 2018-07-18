@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 project(transferUV)
 
 set(SOURCE_FILES
-        src/pluginMain.cpp
-        src/transferUV.h
-        src/transferUV.cpp
-        )
+    src/pluginMain.cpp
+    src/transferUV.h
+    src/transferUV.cpp
+    )
 
 # https://www.guyrutenberg.com/2014/01/05/enabling-c11-c0x-in-cmake/
 include(CheckCXXCompilerFlag)
