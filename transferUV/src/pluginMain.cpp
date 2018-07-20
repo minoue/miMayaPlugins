@@ -3,7 +3,7 @@
 
 MStatus initializePlugin(MObject mObj)
 {
-    MFnPlugin fnPlugin(mObj, "Michitaka Inoue", "1.0.0", "Any");
+    MFnPlugin fnPlugin(mObj, "Michitaka Inoue", "1.0.2", "Any");
     fnPlugin.registerCommand("transferUV", TransferUV::creator, TransferUV::newSyntax);
     return MS::kSuccess;
 }

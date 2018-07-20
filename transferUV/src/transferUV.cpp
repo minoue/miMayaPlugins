@@ -17,6 +17,10 @@ static const char* sourceUvSetFlag = "-suv";
 static const char* sourceUvSetFlagLong = "-sourceUvSet";
 static const char* targetUvSetFlag = "-tuv";
 static const char* targetUvSetFlagLong = "-targetUvSet";
+static const char* sourceMeshFlag = "-sm";
+static const char* sourceMeshFlagLong = "-sourceMesh";
+static const char* targetMeshFlag = "-tm";
+static const char* targetMeshFlagLong = "-targetMesh";
 
 TransferUV::TransferUV()
 {
@@ -35,6 +39,12 @@ MSyntax TransferUV::newSyntax()
     CHECK_MSTATUS_AND_RETURN(status, syntax);
 
     status = syntax.addFlag(targetUvSetFlag, targetUvSetFlagLong, MSyntax::kString);
+    CHECK_MSTATUS_AND_RETURN(status, syntax);
+
+    status = syntax.addFlag(sourceMeshFlag, sourceMeshFlagLong, MSyntax::kString);
+    CHECK_MSTATUS_AND_RETURN(status, syntax);
+
+    status = syntax.addFlag(targetMeshFlag, targetMeshFlagLong, MSyntax::kString);
     CHECK_MSTATUS_AND_RETURN(status, syntax);
 
     return syntax;
@@ -69,11 +79,28 @@ MStatus TransferUV::doIt(const MArgList& args)
         CHECK_MSTATUS_AND_RETURN_IT(status);
     }
 
+    if (argData.isFlagSet(sourceMeshFlag)) {
+        status = argData.getFlagArgument(sourceMeshFlag, 0, sourceMesh);
+    } else {
+        MGlobal::displayError(
+            "Source mesh is not specified. -sm flag is required.");
+        return MS::kFailure;
+    }
+
+    if (argData.isFlagSet(targetMeshFlag)) {
+        status = argData.getFlagArgument(targetMeshFlag, 0, targetMesh);
+    } else {
+        MGlobal::displayError(
+            "Target mesh is not specified. -tm flag is required.");
+        return MS::kFailure;
+    }
+
     MString info = "Copying uv from " + sourceUvSet + " to " + targetUvSet;
     MGlobal::displayInfo(info);
 
     MSelectionList mList;
-    MGlobal::getActiveSelectionList(mList);
+    mList.add(sourceMesh);
+    mList.add(targetMesh);
 
     mList.getDagPath(0, sourceDagPath);
     mList.getDagPath(1, targetDagPath);
@@ -119,7 +146,7 @@ MStatus TransferUV::redoIt()
     }
 
     // Resize source uv array so it becomes same size as number of targets uv
-    int targetNumUVs = targetFnMesh.numUVs();
+    unsigned int targetNumUVs = targetFnMesh.numUVs();
     if (targetNumUVs > sourceUarray.length()) {
         sourceUarray.setLength(targetNumUVs);
         sourceVarray.setLength(targetNumUVs);
@@ -147,11 +174,11 @@ MStatus TransferUV::undoIt()
     MFnMesh undoMesh(targetDagPath);
     MGlobal::displayInfo(targetDagPath.fullPathName());
 
-    MString* sourceUvSetPtr = &sourceUvSet;
     MString* targetUvSetPtr = &targetUvSet;
 
     // Resize original uv array so it becomes same size as current num uvs
-    if (undoMesh.numUVs() > originalUarray.length()) {
+    unsigned int numUVs = undoMesh.numUVs();
+    if (numUVs > originalUarray.length()) {
         originalUarray.setLength(undoMesh.numUVs());
         originalVarray.setLength(undoMesh.numUVs());
     }

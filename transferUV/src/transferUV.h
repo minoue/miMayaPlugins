@@ -25,6 +25,8 @@ private:
 
     MString sourceUvSet;
     MString targetUvSet;
+    MString sourceMesh;
+    MString targetMesh;;
 
     bool useCurrentUvSetSource;
     bool useCurrentUvSetTarget;
