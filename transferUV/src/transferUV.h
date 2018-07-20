@@ -1,3 +1,10 @@
+// transferUV.h
+//
+// Copyright (c) 2018 Michitaka Inoue
+//
+// This software is released under the MIT License.
+// http://opensource.org/licenses/mit-license.php
+
 #ifndef __TRANSFERUV_H__
 #define __TRANSFERUV_H__
 

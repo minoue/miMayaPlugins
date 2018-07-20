@@ -1,7 +1,10 @@
+// transferUV.cpp
 //
-//  TransferUV.cpp
+// Copyright (c) 2018 Michitaka Inoue
 //
-//
+// This software is released under the MIT License.
+// http://opensource.org/licenses/mit-license.php
+
 
 #include "transferUV.h"
 #include <iostream>
