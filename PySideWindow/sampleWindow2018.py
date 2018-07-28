@@ -1,0 +1,124 @@
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+from Qt import QtCore, QtWidgets
+from maya import OpenMayaUI
+from maya import cmds
+import shiboken2
+
+
+def getMayaWindow():
+    ptr = OpenMayaUI.MQtUtil.mainWindow()
+    return shiboken2.wrapInstance(long(ptr), QtWidgets.QMainWindow)
+
+
+class Content(QtWidgets.QWidget):
+    """ Contents widget for tabs """
+
+    def __init__(self, parent=None):
+        """ Init """
+
+        super(Content, self).__init__(parent)
+
+        self.button1 = QtWidgets.QPushButton("button1")
+        self.button2 = QtWidgets.QPushButton("button2")
+        self.le = QtWidgets.QLineEdit("lineedit")
+        self.textEdit = QtWidgets.QTextEdit("text edit")
+
+        layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
+        layout.addWidget(self.button1)
+        layout.addWidget(self.button2)
+        layout.addWidget(self.le)
+        layout.addWidget(self.textEdit)
+
+        self.setLayout(layout)
+
+
+class CentralWidget(QtWidgets.QWidget):
+    """ Central widget """
+
+    def __init__(self, parent=None):
+        """ Init """
+
+        super(CentralWidget, self).__init__(parent)
+
+        self.createUI()
+        self.layoutUI()
+
+    def createUI(self):
+        """ Crete widgets """
+
+        self.tabWidget = QtWidgets.QTabWidget()
+        self.tabWidget.addTab(Content(), "Tab1")
+        self.tabWidget.addTab(Content(), "Tab2")
+
+    def layoutUI(self):
+        """ Layout widgets """
+
+        mainLayout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
+        mainLayout.addWidget(self.tabWidget)
+
+        self.setLayout(mainLayout)
+
+
+class MainWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
+
+    def __init__(self, parent=getMayaWindow()):
+        """ init """
+
+        super(MainWindow, self).__init__(parent)
+
+        self.thisObjectName = "testDockWindow"
+        self.WindowTitle = "Sample Dockable Widget"
+        self.workspaceControlName = self.thisObjectName + "WorkspaceControl"
+
+        self.setObjectName(self.thisObjectName)
+        self.setWindowTitle(self.WindowTitle)
+
+        self.setWindowFlags(QtCore.Qt.Window)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+        # Create and set central widget
+        cw = CentralWidget()
+        self.setCentralWidget(cw)
+
+        self.setupMenu()
+
+    def setupMenu(self):
+        """ Setup menu """
+
+        menu = self.menuBar()
+
+        # About
+        aboutAction = QtWidgets.QAction("&About", self)
+        aboutAction.setStatusTip('About this script')
+        aboutAction.triggered.connect(self.showAbout)
+
+        menu.addAction("File")
+        help_menu = menu.addMenu("&Help")
+        help_menu.addAction(aboutAction)
+
+    def showAbout(self):
+        """ about message """
+
+        QtWidgets.QMessageBox.about(
+            self,
+            'About ',
+            'Awesome window\n')
+
+    def run(self):
+        try:
+            cmds.deleteUI(self.workspaceControlName)
+        except RuntimeError:
+            pass
+
+        self.show(dockable=True)
+        cmds.workspaceControl(self.workspaceControlName, e=True)
+        self.raise_()
+
+
+def main():
+    w = MainWindow()
+    w.run()
+
+
+if __name__ == "__main__":
+    main()
