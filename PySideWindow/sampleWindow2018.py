@@ -10,6 +10,35 @@ def getMayaWindow():
     return shiboken2.wrapInstance(long(ptr), QtWidgets.QMainWindow)
 
 
+def mayaUIContent():
+    """ Contents by Maya standard UI widgets """
+    cmds.window()  # dummy window
+
+    layout = cmds.columnLayout(adjustableColumn=True)
+
+    cmds.frameLayout("Sample Frame 1", collapsable=True)
+    cmds.columnLayout(adjustableColumn=True, rowSpacing=2)
+    cmds.button("maya button 1")
+    cmds.button("maya button 2")
+    cmds.button("maya button 3")
+    cmds.setParent('..')
+    cmds.setParent('..')
+
+    cmds.frameLayout("Sample Frame 2", collapsable=True)
+    cmds.gridLayout(numberOfColumns=6, cellWidthHeight=(35, 35))
+    cmds.shelfButton(image1="polySphere.png", rpt=True, command=cmds.polySphere)
+    cmds.shelfButton(image1="sphere.png", rpt=True, command=cmds.sphere)
+    cmds.setParent('..')
+    cmds.setParent('..')
+
+    cmds.setParent('..')  # columnLayout
+
+    ptr = OpenMayaUI.MQtUtil.findLayout(layout)
+    obj = shiboken2.wrapInstance(long(ptr), QtWidgets.QWidget)
+
+    return obj
+
+
 class Content(QtWidgets.QWidget):
     """ Contents widget for tabs """
 
@@ -49,6 +78,7 @@ class CentralWidget(QtWidgets.QWidget):
         self.tabWidget = QtWidgets.QTabWidget()
         self.tabWidget.addTab(Content(), "Tab1")
         self.tabWidget.addTab(Content(), "Tab2")
+        self.tabWidget.addTab(mayaUIContent(), "Tab3")
 
     def layoutUI(self):
         """ Layout widgets """
