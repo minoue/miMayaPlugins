@@ -12,7 +12,6 @@ def getMayaWindow():
 
 def mayaUIContent():
     """ Contents by Maya standard UI widgets """
-    cmds.window()  # dummy window
 
     layout = cmds.columnLayout(adjustableColumn=True)
 
