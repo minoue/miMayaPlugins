@@ -5,11 +5,6 @@ from maya import cmds
 import shiboken2
 
 
-def getMayaWindow():
-    ptr = OpenMayaUI.MQtUtil.mainWindow()
-    return shiboken2.wrapInstance(long(ptr), QtWidgets.QMainWindow)
-
-
 def mayaUIContent():
     """ Contents by Maya standard UI widgets """
 
@@ -25,8 +20,8 @@ def mayaUIContent():
 
     cmds.frameLayout("Sample Frame 2", collapsable=True)
     cmds.gridLayout(numberOfColumns=6, cellWidthHeight=(35, 35))
-    cmds.shelfButton(image1="polySphere.png", rpt=True, command=cmds.polySphere)
-    cmds.shelfButton(image1="sphere.png", rpt=True, command=cmds.sphere)
+    cmds.shelfButton(image1="polySphere.png", rpt=True, c=cmds.polySphere)
+    cmds.shelfButton(image1="sphere.png", rpt=True, c=cmds.sphere)
     cmds.setParent('..')
     cmds.setParent('..')
 
@@ -90,7 +85,7 @@ class CentralWidget(QtWidgets.QWidget):
 
 class MainWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
 
-    def __init__(self, parent=getMayaWindow()):
+    def __init__(self, parent=None):
         """ init """
 
         super(MainWindow, self).__init__(parent)
