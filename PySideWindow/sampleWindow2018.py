@@ -135,7 +135,10 @@ class MainWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             pass
 
         self.show(dockable=True)
-        cmds.workspaceControl(self.workspaceControlName, e=True)
+        cmds.workspaceControl(
+            self.workspaceControlName,
+            edit=True,
+            dockToControl=['Outliner', 'right'])
         self.raise_()
 
 
