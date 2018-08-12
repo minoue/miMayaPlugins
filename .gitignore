@@ -17,3 +17,4 @@ uvChecker/.idea/
 uvChecker/cmake-build-debug/
 modules/
 !CMakeLists.txt
+!CMakeLists_template.txt
