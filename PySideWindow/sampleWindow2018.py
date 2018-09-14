@@ -1,5 +1,5 @@
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-from Qt import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets
 from maya import OpenMayaUI
 from maya import cmds
 import shiboken2
