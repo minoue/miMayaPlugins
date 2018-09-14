@@ -5,7 +5,7 @@ from maya import cmds
 import shiboken2
 
 
-def mayaUIContent():
+def mayaUIContent(parent):
     """ Contents by Maya standard UI widgets """
 
     layout = cmds.columnLayout(adjustableColumn=True)
@@ -29,6 +29,7 @@ def mayaUIContent():
 
     ptr = OpenMayaUI.MQtUtil.findLayout(layout)
     obj = shiboken2.wrapInstance(long(ptr), QtWidgets.QWidget)
+    obj.setParent(parent)
 
     return obj
 
@@ -70,9 +71,9 @@ class CentralWidget(QtWidgets.QWidget):
         """ Crete widgets """
 
         self.tabWidget = QtWidgets.QTabWidget()
-        self.tabWidget.addTab(Content(), "Tab1")
-        self.tabWidget.addTab(Content(), "Tab2")
-        self.tabWidget.addTab(mayaUIContent(), "Tab3")
+        self.tabWidget.addTab(Content(self), "Tab1")
+        self.tabWidget.addTab(Content(self), "Tab2")
+        self.tabWidget.addTab(mayaUIContent(self), "Tab3")
 
     def layoutUI(self):
         """ Layout widgets """
