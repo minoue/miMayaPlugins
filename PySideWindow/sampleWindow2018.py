@@ -8,7 +8,7 @@ import shiboken2
 def mayaUIContent(parent):
     """ Contents by Maya standard UI widgets """
 
-    layout = cmds.columnLayout(adjustableColumn=True)
+    layout = cmds.columnLayout(adjustableColumn=True, parent=parent)
 
     cmds.frameLayout("Sample Frame 1", collapsable=True)
     cmds.columnLayout(adjustableColumn=True, rowSpacing=2)
@@ -29,7 +29,6 @@ def mayaUIContent(parent):
 
     ptr = OpenMayaUI.MQtUtil.findLayout(layout)
     obj = shiboken2.wrapInstance(long(ptr), QtWidgets.QWidget)
-    obj.setParent(parent)
 
     return obj
 
@@ -73,7 +72,6 @@ class CentralWidget(QtWidgets.QWidget):
         self.tabWidget = QtWidgets.QTabWidget()
         self.tabWidget.addTab(Content(self), "Tab1")
         self.tabWidget.addTab(Content(self), "Tab2")
-        self.tabWidget.addTab(mayaUIContent(self), "Tab3")
 
     def layoutUI(self):
         """ Layout widgets """
@@ -102,8 +100,8 @@ class MainWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         # Create and set central widget
-        cw = CentralWidget()
-        self.setCentralWidget(cw)
+        self.cw = CentralWidget()
+        self.setCentralWidget(self.cw)
 
         self.setupMenu()
 
@@ -141,6 +139,9 @@ class MainWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             edit=True,
             dockToControl=['Outliner', 'right'])
         self.raise_()
+
+        # Maya layout widget is added here to be parented under workspaceControl
+        self.cw.tabWidget.addTab(mayaUIContent(self.workspaceControlName), "MayaLayout")
 
 
 def main():
