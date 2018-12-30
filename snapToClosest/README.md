@@ -1,12 +1,19 @@
 # Snap to closest vertices/surface.
 
 ## Build
+### MacOS/Linux
 ```
 mkdir build
 cd build
 cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DMAYA_VERSION=2015 ../
 cmake --build . --config Release --target install
 
+```
+
+### Windows (Visual Studio 2017 & Maya2018)
+```
+cmake -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Release -DMAYA_VERSION=2018 ../
+cmake --build . --config Release --target install
 ```
 
 ##  Flags
