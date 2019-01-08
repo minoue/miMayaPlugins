@@ -117,7 +117,17 @@ MStatus TransferUV::redoIt()
 
     MFnMesh sourceFnMesh(sourceDagPath);
     MFnMesh targetFnMesh(targetDagPath);
+    
+    // Get current UV sets and keep them to switch back to them at the last
+    MString currentSourceUVSet = sourceFnMesh.currentUVSetName();
+    MString currentTargetUVSet = targetFnMesh.currentUVSetName();
 
+    // Switch to uv sets specified in flags before starting transfer process
+    // This is required because MFnMesh does not work properly with
+    // "Non-current" UV sets
+    sourceFnMesh.setCurrentUVSetName(sourceUvSet);
+    targetFnMesh.setCurrentUVSetName(targetUvSet);
+    
     MString* sourceUvSetPtr = &sourceUvSet;
     MString* targetUvSetPtr = &targetUvSet;
 
@@ -167,6 +177,10 @@ MStatus TransferUV::redoIt()
         return status;
     }
 
+    // Switch back to originals
+    sourceFnMesh.setCurrentUVSetName(currentSourceUVSet);
+    targetFnMesh.setCurrentUVSetName(currentTargetUVSet);
+    
     return MS::kSuccess;
 }
 
