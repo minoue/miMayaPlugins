@@ -7,10 +7,14 @@
 
 #include "transferUV.h"
 #include <maya/MFnPlugin.h>
+#include <maya/MGlobal.h>
 
 MStatus initializePlugin(MObject mObj)
 {
-    MFnPlugin fnPlugin(mObj, "Michitaka Inoue", "1.0.3", "Any");
+    MString date = MGlobal::executeCommandStringResult("date -d;");
+    MString version("1.0.5 / ");
+    MString ver = version + date;
+    MFnPlugin fnPlugin(mObj, "Michitaka Inoue", ver.asChar(), "Any");
     fnPlugin.registerCommand("transferUV", TransferUV::creator, TransferUV::newSyntax);
     return MS::kSuccess;
 }
