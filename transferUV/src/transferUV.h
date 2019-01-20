@@ -33,7 +33,7 @@ private:
     MString sourceUvSet;
     MString targetUvSet;
     MString sourceMesh;
-    MString targetMesh;;
+    MString targetMesh;
 
     bool useCurrentUvSetSource;
     bool useCurrentUvSetTarget;
