@@ -1,11 +1,11 @@
-#include "transferVertex.h" 
-#include <maya/MGlobal.h> 
-#include <maya/MArgList.h> 
+#include "transferVertex.h"
+#include <maya/MGlobal.h>
+#include <maya/MArgList.h>
 #include <maya/MArgDatabase.h>
-#include <maya/MSelectionList.h> 
-#include <maya/MStringArray.h> 
-#include <maya/MItMeshVertex.h> 
-#include <maya/MIntArray.h> 
+#include <maya/MSelectionList.h>
+#include <maya/MStringArray.h>
+#include <maya/MItMeshVertex.h>
+#include <maya/MIntArray.h>
 #include <maya/MPoint.h>
 
 
@@ -42,27 +42,27 @@ MSyntax TransferVertex::newSyntax()
 
 	return syntax;
 }
-  
-TransferVertex::TransferVertex() { 
-} 
 
-TransferVertex::~TransferVertex() { 
-} 
+TransferVertex::TransferVertex() {
+}
 
-MStatus TransferVertex::doIt( const MArgList& args) 
-{ 
-    MStatus status; 
-    // if (args.length() != 1) { 
-    //     MGlobal::displayError("Need one arg"); 
-    //     return MStatus::kFailure; 
-    // } 
+TransferVertex::~TransferVertex() {
+}
 
-    // arg 
-    // MString argument = args.asString(0, &status); 
-    // if (status != MS::kSuccess) { 
-    //     return MStatus::kFailure; 
-    // } 
-    // CHECK_MSTATUS_AND_RETURN_IT(status); 
+MStatus TransferVertex::doIt( const MArgList& args)
+{
+    MStatus status;
+    // if (args.length() != 1) {
+    //     MGlobal::displayError("Need one arg");
+    //     return MStatus::kFailure;
+    // }
+
+    // arg
+    // MString argument = args.asString(0, &status);
+    // if (status != MS::kSuccess) {
+    //     return MStatus::kFailure;
+    // }
+    // CHECK_MSTATUS_AND_RETURN_IT(status);
 
 	MArgDatabase argData(syntax(), args);
 
@@ -71,7 +71,7 @@ MStatus TransferVertex::doIt( const MArgList& args)
 	}
 	else {
 		sourceUvSet = "map1";
-	}					 
+	}
 
 	if (argData.isFlagSet(targetUvSetFlag)) {
 		status = argData.getFlagArgument(targetUvSetFlag, 0, targetUvSet);
@@ -105,33 +105,33 @@ MStatus TransferVertex::doIt( const MArgList& args)
 		return MS::kFailure;
 	}
 
-    MSelectionList mList; 
-    // MGlobal::getActiveSelectionList(mList); 
+    MSelectionList mList;
+    // MGlobal::getActiveSelectionList(mList);
 
 	mList.add(sourceMesh);
 	mList.add(targetMesh);
 
-    MDagPath sourceDagPath; 
-    MDagPath targetDagPath; 
+    MDagPath sourceDagPath;
+    MDagPath targetDagPath;
 
-    mList.getDagPath(0, sourceDagPath); 
-    mList.getDagPath(1, targetDagPath); 
+    mList.getDagPath(0, sourceDagPath);
+    mList.getDagPath(1, targetDagPath);
 
-    MGlobal::displayInfo(sourceDagPath.fullPathName()); 
-    MGlobal::displayInfo(targetDagPath.fullPathName()); 
+    MGlobal::displayInfo(sourceDagPath.fullPathName());
+    MGlobal::displayInfo(targetDagPath.fullPathName());
 
-    sourceFnMesh.setObject(sourceDagPath); 
-    targetFnMesh.setObject(targetDagPath); 
+    sourceFnMesh.setObject(sourceDagPath);
+    targetFnMesh.setObject(targetDagPath);
 
-    MString uvSetName = "map1"; 
-    MString* uvSetPtr = &uvSetName; 
+    MString uvSetName = "map1";
+    MString* uvSetPtr = &uvSetName;
 
-    MIntArray polygonIds; 
-    MPointArray points; 
+    MIntArray polygonIds;
+    MPointArray points;
 
-    MIntArray faceIndices; 
-    targetFnMesh.getPoints(originalPositions); 
-    targetFnMesh.getPoints(newPositions); 
+    MIntArray faceIndices;
+    targetFnMesh.getPoints(originalPositions);
+    targetFnMesh.getPoints(newPositions);
 
 
 	// UVset
@@ -140,57 +140,57 @@ MStatus TransferVertex::doIt( const MArgList& args)
 	MString targetUVSetOrig = targetFnMesh.currentUVSetName();
 	targetFnMesh.setCurrentUVSetName(targetUvSet);
 
-    for (MItMeshVertex itVerts(targetDagPath); !itVerts.isDone(); itVerts.next()) { 
-        itVerts.getConnectedFaces(faceIndices); 
+    for (MItMeshVertex itVerts(targetDagPath); !itVerts.isDone(); itVerts.next()) {
+        itVerts.getConnectedFaces(faceIndices);
 
-        int numFaces = faceIndices.length(); 
-        for (int i=0; i<numFaces; i++) { 
-            int index = faceIndices[i]; 
-            float uv[2]; 
-            itVerts.getUV(index, uv, &targetUvSet); 
+        int numFaces = faceIndices.length();
+        for (int i=0; i<numFaces; i++) {
+            int index = faceIndices[i];
+            float uv[2];
+            itVerts.getUV(index, uv, &targetUvSet);
 
-            status = sourceFnMesh.getPointsAtUV( 
-                polygonIds, 
-                points, 
-                uv, 
-                MSpace::kObject, 
-                &sourceUvSet, 
-                tolerance); 
+            status = sourceFnMesh.getPointsAtUV(
+                polygonIds,
+                points,
+                uv,
+                MSpace::kObject,
+                &sourceUvSet,
+                tolerance);
 
-            if (status == MS::kSuccess) { 
-				int length = points.length(); 
-				if (length != 0) { 
-					newPositions[itVerts.index()] = points[0]; 
-				} 
+            if (status == MS::kSuccess) {
+				int length = points.length();
+				if (length != 0) {
+					newPositions[itVerts.index()] = points[0];
+				}
 			}
-        } 
-    } 
+        }
+    }
 
-    targetFnMesh.setPoints(newPositions); 
+    targetFnMesh.setPoints(newPositions);
 
 	sourceFnMesh.setCurrentUVSetName(souceUVSetOrig);
 	targetFnMesh.setCurrentUVSetName(targetUVSetOrig);
 
-    return redoIt(); 
-} 
+    return redoIt();
+}
 
-MStatus TransferVertex::redoIt() { 
-    MStatus status; 
-    return status; 
-} 
+MStatus TransferVertex::redoIt() {
+    MStatus status;
+    return status;
+}
 
 
-MStatus TransferVertex::undoIt() { 
-    targetFnMesh.setPoints(originalPositions); 
-    return MS::kSuccess; 
-} 
+MStatus TransferVertex::undoIt() {
+    targetFnMesh.setPoints(originalPositions);
+    return MS::kSuccess;
+}
 
-  
-bool TransferVertex::isUndoable() const { 
-    return true; 
-} 
 
-void* TransferVertex::creator() 
-{ 
-    return new TransferVertex; 
-}                                            
+bool TransferVertex::isUndoable() const {
+    return true;
+}
+
+void* TransferVertex::creator()
+{
+    return new TransferVertex;
+}

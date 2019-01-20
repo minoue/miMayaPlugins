@@ -8,32 +8,32 @@
 #ifndef __TransferVertex_H__
 #define __TransferVertex_H__
 
-#include <maya/MPxCommand.h> 
-#include <maya/MDagPath.h> 
-#include <maya/MPointArray.h> 
-#include <maya/MFnMesh.h> 
-#include <maya/MString.h> 
+#include <maya/MPxCommand.h>
+#include <maya/MDagPath.h>
+#include <maya/MPointArray.h>
+#include <maya/MFnMesh.h>
+#include <maya/MString.h>
 #include <maya/MSyntax.h>
-  
 
-class TransferVertex : public MPxCommand 
-{ 
-public: 
-    TransferVertex(); 
-    virtual ~TransferVertex(); 
-    MStatus doIt(const MArgList& argList); 
-    MStatus undoIt(); 
-    MStatus redoIt(); 
-    bool isUndoable() const; 
-    static void* creator(); 
+
+class TransferVertex : public MPxCommand
+{
+public:
+    TransferVertex();
+    virtual ~TransferVertex();
+    MStatus doIt(const MArgList& argList);
+    MStatus undoIt();
+    MStatus redoIt();
+    bool isUndoable() const;
+    static void* creator();
 	static MSyntax newSyntax();
 
-private: 
-    MDagPath mDagPath; 
-    MPointArray originalPositions; 
-    MPointArray newPositions; 
-    MFnMesh sourceFnMesh; 
-    MFnMesh targetFnMesh; 
+private:
+    MDagPath mDagPath;
+    MPointArray originalPositions;
+    MPointArray newPositions;
+    MFnMesh sourceFnMesh;
+    MFnMesh targetFnMesh;
 
 	MString sourceUvSet;
 	MString targetUvSet;
@@ -41,7 +41,7 @@ private:
 	MString targetMesh;
 
 	double tolerance;
-}; 
+};
 
 
-#endif /* defined(__TransferVertex_H__) */ 
+#endif /* defined(__TransferVertex_H__) */
