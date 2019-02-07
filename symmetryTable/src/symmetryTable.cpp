@@ -13,6 +13,8 @@
 #include <string>
 #include <utility>
 #include <algorithm>
+#include <maya/MMatrix.h>
+#include <maya/MMeshIntersector.h>
 
 
 SymmetryTable::SymmetryTable() {
@@ -61,6 +63,12 @@ MStatus SymmetryTable::doIt(const MArgList& args)
 	MGlobal::getActiveSelectionList(mList);
     mList.getDagPath(0, dagPath, components);
  
+    MMatrix matrix = dagPath.inclusiveMatrix();
+    MMeshIntersector intersector;
+    dagPath.extendToShape();
+    MObject obj = dagPath.node();
+    intersector.create(obj, matrix);
+
     MPoint closestPoint;
     double shortestDistance;
     int faceIndex;
@@ -70,12 +78,21 @@ MStatus SymmetryTable::doIt(const MArgList& args)
     for (MItMeshVertex itVerts(dagPath, components); !itVerts.isDone(); itVerts.next()) {
         MPoint oppositePoint = itVerts.position();
         oppositePoint.x = -oppositePoint.x;
-        fnMesh.getClosestPoint(oppositePoint, closestPoint, MSpace::kObject, &faceIndex);
+
+        MPointOnMesh pointInfo;
+
+        intersector.getClosestPoint(oppositePoint, pointInfo);
+
+        faceIndex = pointInfo.faceIndex();
+        closestPoint = pointInfo.getPoint();
+        closestPoint = closestPoint * matrix;
+
+        // fnMesh.getClosestPoint(oppositePoint, closestPoint, MSpace::kObject, &faceIndex);
         MIntArray faceVertices;
         fnMesh.getPolygonVertices(faceIndex, faceVertices);
  
         int closestVertex;
-        for (int i = 0; i < faceVertices.length(); i++) {
+        for (unsigned int i = 0; i < faceVertices.length(); i++) {
             MPoint vertexPoint;
             fnMesh.getPoint(faceVertices[i], vertexPoint);
             MVector v = vertexPoint - oppositePoint;
