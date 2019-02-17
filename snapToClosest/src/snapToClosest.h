@@ -36,18 +36,21 @@ public:
     static MSyntax newSyntax();
 
 private:
-    MDagPath mDagPath_components;
-    MDagPath mDagPath_target;
-    MObject components;
+    MStatus snapToClosestNormal(MDagPath& sourceDagPath, MObject& components, MDagPath& targetDagPath);
+    MStatus snapToClosestSurface(MDagPath& sourceDagPath, MObject& components, MDagPath& targetDagPath);
+    MStatus snapToClosestVertex(MDagPath& sourceDagPath, MObject& components, MDagPath& targetDagPath);
+
     MFnMesh fnMeshComponents;
-    MFnMesh fnMeshTarget;
-    MPointArray vertexArray;
-    MPointArray newVertexArray;
+
+    MPointArray oldPositions;
+    MPointArray newPositions;
+
     MSelectionList mList;
     MString targetObjectName;
     bool dummyBool;
     double searchDistance;
     MString mode;
+
     bool useCustomVector;
     MVector customVector;
     double customVectorX;

@@ -155,151 +155,181 @@ MStatus SnapToClosest::redoIt()
 {
     MStatus status;
 
+    MDagPath sourceDagPath;
+    MDagPath targetDagPath;
+    MObject components;
+
     mList.add(targetObjectName);
-    mList.getDagPath(0, mDagPath_components, components);
-    mList.getDagPath(1, mDagPath_target);
+    mList.getDagPath(0, sourceDagPath, components);
+    mList.getDagPath(1, targetDagPath);
 
     // Store current point positions for undo
-    fnMeshComponents.setObject(mDagPath_components);
-    fnMeshComponents.getPoints(vertexArray, MSpace::kWorld);
+    fnMeshComponents.setObject(sourceDagPath);
+    fnMeshComponents.getPoints(oldPositions, MSpace::kWorld);
 
-    // Store curent point position for new.
-    fnMeshComponents.getPoints(newVertexArray, MSpace::kWorld);
-
-    // Create fnMesh for target mesh
-    fnMeshTarget.setObject(mDagPath_target);
+    // Store curent point position for new positions.
+    fnMeshComponents.getPoints(newPositions, MSpace::kWorld);
 
     // Create mesh vertex iterator
-    MItMeshVertex vIter(mDagPath_components, components);
+    MItMeshVertex vIter(sourceDagPath, components);
+
+    if (mode == "normal") {
+        snapToClosestNormal(sourceDagPath, components, targetDagPath);
+    }
+    else if (mode == "surface") {
+        snapToClosestSurface(sourceDagPath, components, targetDagPath);
+    }
+    else if (mode == "vertex") {
+        snapToClosestVertex(sourceDagPath, components, targetDagPath);
+    }
+
+    fnMeshComponents.setPoints(newPositions, MSpace::kWorld);
+    return MS::kSuccess;
+}
+
+MStatus SnapToClosest::snapToClosestNormal(MDagPath& sourceDagPath, MObject& components, MDagPath& targetDagPath) {
+
+    MFnMesh target(targetDagPath);
+
+    for (MItMeshVertex vIter(sourceDagPath, components); !vIter.isDone(); vIter.next()) {
+        MPoint currentPosition = vIter.position(MSpace::kWorld);
+        int currentIndex = vIter.index();
+
+        // Setup intersector
+        MVector normalVector;
+        if (useCustomVector) {
+            normalVector.x = customVectorX;
+            normalVector.y = customVectorY;
+            normalVector.z = customVectorZ;
+        } else {
+            vIter.getNormal(normalVector, MSpace::kWorld);
+        }
+        normalVector.normalize();
+
+        MFloatPoint raySource(currentPosition);
+        MFloatVector rayDirection(normalVector);
+        MFloatPoint hitPoint;
+
+        target.closestIntersection(
+            raySource,
+            rayDirection,
+            0,
+            0,
+            false,
+            MSpace::kWorld,
+            999999,
+            testBothDirections,
+            0,
+            hitPoint,
+            0,
+            0,
+            0,
+            0,
+            0);
+
+        MPoint mHitPoint(hitPoint.x, hitPoint.y, hitPoint.z);
+        MVector distanceVector = mHitPoint - currentPosition;
+
+        if (distanceVector.length() < searchDistance) {
+            newPositions[currentIndex] = mHitPoint;
+        }
+    }
+    return MS::kSuccess;
+}
+
+MStatus SnapToClosest::snapToClosestSurface(MDagPath& sourceDagPath, MObject& components, MDagPath& targetDagPath) {
 
     // Setup intersector
-    MMatrix matrix = mDagPath_target.inclusiveMatrix();
+    MMatrix matrix = targetDagPath.inclusiveMatrix();
     MMeshIntersector intersector;
-    mDagPath_target.extendToShape();
-    MObject targetMObj = mDagPath_target.node();
+    targetDagPath.extendToShape();
+    MObject targetMObj = targetDagPath.node();
     intersector.create(targetMObj, matrix);
 
-    // Iteration start
-    for (; !vIter.isDone(); vIter.next()) {
+    for (MItMeshVertex vIter(sourceDagPath, components); !vIter.isDone(); vIter.next()) {
 
         // Curent point position in MPoint
         MPoint currentPosition = vIter.position(MSpace::kWorld);
-        MPoint closestPoint;
-
-        // MVector to check the distance between current point and target point
-        MVector distanceVector;
 
         //current vertex index
         int currentIndex = vIter.index();
 
-        // polygon face ID
-        int faceIndex;
-
         MPointOnMesh pointInfo;
+        intersector.getClosestPoint(currentPosition, pointInfo);
 
-        intersector.getClosestPoint(
-            currentPosition,
-            pointInfo);
+        MPoint closestPoint = pointInfo.getPoint();
 
-        faceIndex = pointInfo.faceIndex();
-        closestPoint = pointInfo.getPoint();
-        // Apply matrix of target mesh
+        // This is the point of snap target
         closestPoint = closestPoint * matrix;
 
-        // If vertex mode, snap to closest verteces.
-        if (mode == "vertex") {
-            // Get closest face 's vertices
-            MIntArray faceVertexArray;
-
-            // Value to check
-            double shortestDistance = 10000;
-
-            // MPoint closestVertex = currentPosition;
-            MPoint closestVertex = currentPosition;
-
-            // Get face index array
-            fnMeshTarget.getPolygonVertices(faceIndex, faceVertexArray);
-
-            // Loop face vertices and find a vertex which is closest to the
-            // current vertex.
-            for (unsigned int i = 0; i < faceVertexArray.length(); i++) {
-                int vertexIndex = faceVertexArray[i];
-                MPoint pointPosition;
-                fnMeshTarget.getPoint(vertexIndex, pointPosition, MSpace::kWorld);
-
-                distanceVector = pointPosition - currentPosition;
-
-                // If length is shorter than search distance, keep current point.
-                if (distanceVector.length() < searchDistance) {
-                    if (distanceVector.length() < shortestDistance) {
-                        shortestDistance = distanceVector.length();
-                        closestVertex = pointPosition;
-                    }
-                }
-            }
-            // Set closest vertex to new vertex array
-            newVertexArray[currentIndex] = closestVertex;
-
-            // In normal mode, add cloest point along normal vector.
-        } else if (mode == "normal") {
-            MVector normalVector;
-            if (useCustomVector) {
-                normalVector.x = customVectorX;
-                normalVector.y = customVectorY;
-                normalVector.z = customVectorZ;
-            } else {
-                vIter.getNormal(normalVector, MSpace::kWorld);
-            }
-            normalVector.normalize();
-
-            MFloatPoint raySource(currentPosition);
-            MFloatVector rayDirection(normalVector);
-            MFloatPoint hitPoint;
-
-            fnMeshTarget.closestIntersection(
-                raySource,
-                rayDirection,
-                0,
-                0,
-                false,
-                MSpace::kWorld,
-                999999,
-                testBothDirections,
-                0,
-                hitPoint,
-                0,
-                0,
-                0,
-                0,
-                0);
-
-            MPoint mHitPoint(hitPoint.x, hitPoint.y, hitPoint.z);
-            distanceVector = mHitPoint - currentPosition;
-
-            if (distanceVector.length() < searchDistance) {
-                newVertexArray[currentIndex] = mHitPoint;
-            }
-        }
-
-        // In surface mode, simply add the closest point to the array
-        else if (mode == "surface") {
-            distanceVector = closestPoint - currentPosition;
-            if (distanceVector.length() < searchDistance) {
-                newVertexArray[currentIndex] = closestPoint;
-            }
-        } else {
-            MGlobal::displayError("*** WRONG MODE. USE 'vertex', 'normal', or 'surface'. ***");
-            return MStatus::kFailure;
+        MVector distanceVector = closestPoint - currentPosition;
+        if (distanceVector.length() < searchDistance) {
+            newPositions[currentIndex] = closestPoint;
         }
     }
+    return MS::kSuccess;
+}
 
-    fnMeshComponents.setPoints(newVertexArray, MSpace::kWorld);
-    return status;
+MStatus SnapToClosest::snapToClosestVertex(MDagPath& sourceDagPath, MObject& components, MDagPath& targetDagPath) {
+    MFnMesh target(targetDagPath);
+
+    // Setup intersector
+    MMatrix matrix = targetDagPath.inclusiveMatrix();
+    MMeshIntersector intersector;
+    targetDagPath.extendToShape();
+    MObject targetMObj = targetDagPath.node();
+    intersector.create(targetMObj, matrix);
+
+    for (MItMeshVertex vIter(sourceDagPath, components); !vIter.isDone(); vIter.next()) {
+
+        // Curent point position
+        MPoint currentPosition = vIter.position(MSpace::kWorld);
+
+        //current vertex index
+        int currentIndex = vIter.index();
+
+        // Value to check
+        double shortestDistance = 10000;
+
+        MPointOnMesh pointInfo;
+        intersector.getClosestPoint(currentPosition, pointInfo);
+        int faceIndex = pointInfo.faceIndex();
+
+        // MPoint closestVertex = currentPosition;
+        MPoint closestVertex = currentPosition;
+
+        // Get face index array
+        MIntArray faceVertexArray;
+        target.getPolygonVertices(faceIndex, faceVertexArray);
+
+        // Loop face vertices and find a vertex which is closest to the
+        // current vertex.
+        for (unsigned int i = 0; i < faceVertexArray.length(); i++) {
+            int vertexIndex = faceVertexArray[i];
+            MPoint pointPosition;
+            target.getPoint(vertexIndex, pointPosition, MSpace::kWorld);
+
+            MVector distanceVector = pointPosition - currentPosition;
+
+            // If length is shorter than search distance, keep current point.
+            if (distanceVector.length() < searchDistance) {
+                if (distanceVector.length() < shortestDistance) {
+                    shortestDistance = distanceVector.length();
+                    closestVertex = pointPosition;
+                }
+            }
+        }
+        // Set closest vertex to new vertex array
+        newPositions[currentIndex] = closestVertex;
+
+        // In normal mode, add cloest point along normal vector.
+    }
+    return MS::kSuccess;
 }
 
 MStatus SnapToClosest::undoIt()
 {
-    fnMeshComponents.setPoints(vertexArray, MSpace::kWorld);
+    fnMeshComponents.setPoints(oldPositions, MSpace::kWorld);
     return MS::kSuccess;
 }
 
