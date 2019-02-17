@@ -21,7 +21,7 @@ class SnapWindow(QtWidgets.QDialog):
             try:
                 if qt.__class__.__name__ == self.__class__.__name__:
                     qt.close()
-            except:
+            except Exception:
                 pass
 
     def __init__(self, parent=getMayaWindow()):
@@ -145,11 +145,7 @@ class SnapWindow(QtWidgets.QDialog):
         else:
             testBothDirections = False
 
-        try:
-            maxDist = int(self.distanceLE.text())
-        except:
-            print "not int!!!!"
-            return
+        maxSearchRadius = float(self.distanceLE.text())
 
         if self.customVectorCheck.checkState() == QtCore.Qt.CheckState.Checked:
             nx = float(self.customVectorX.text())
@@ -158,7 +154,7 @@ class SnapWindow(QtWidgets.QDialog):
             cmds.snapToClosest(
                 target,
                 mode=snapMode,
-                r=maxDist,
+                r=maxSearchRadius,
                 cv=True,
                 cvx=nx,
                 cvy=ny,
@@ -168,7 +164,7 @@ class SnapWindow(QtWidgets.QDialog):
             cmds.snapToClosest(
                 target,
                 mode=snapMode,
-                d=maxDist,
+                r=maxSearchRadius,
                 tbd=testBothDirections)
 
     def setter(self):
