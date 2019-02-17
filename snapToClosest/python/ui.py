@@ -90,7 +90,7 @@ class SnapWindow(QtWidgets.QDialog):
         modeLayout.addWidget(self.surfaceMode)
 
         distLayout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
-        distLayout.addWidget(QtWidgets.QLabel("Snap Max Distance : "))
+        distLayout.addWidget(QtWidgets.QLabel("Max Search Radius : "))
         distLayout.addWidget(self.distanceLE)
         distLayout.addWidget(self.distanceLock)
 
@@ -158,7 +158,7 @@ class SnapWindow(QtWidgets.QDialog):
             cmds.snapToClosest(
                 target,
                 mode=snapMode,
-                d=maxDist,
+                r=maxDist,
                 cv=True,
                 cvx=nx,
                 cvy=ny,

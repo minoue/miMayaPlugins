@@ -13,7 +13,7 @@ MStatus initializePlugin(MObject mObj)
 {
     MStatus status;
 
-    MFnPlugin fnPlugin(mObj, "Michitaka Inoue", "1.1.0", "Any");
+    MFnPlugin fnPlugin(mObj, "Michitaka Inoue", "1.1.1", "Any");
 
     status = fnPlugin.registerCommand(
         "snapToClosest",

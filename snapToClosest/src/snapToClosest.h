@@ -48,7 +48,7 @@ private:
     MSelectionList mList;
     MString targetObjectName;
     bool dummyBool;
-    double searchDistance;
+    double searchRadius;
     MString mode;
 
     bool useCustomVector;

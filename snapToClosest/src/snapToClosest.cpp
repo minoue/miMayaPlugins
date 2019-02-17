@@ -28,8 +28,8 @@ using namespace std;
 // Flags for this command
 static const char* modeFlag = "-m";
 static const char* modeFlagLong = "-mode";
-static const char* distanceFlag = "-d";
-static const char* distanceFlagLong = "-searchDistance";
+static const char* searchRadiusFlag = "-r";
+static const char* searchRadiusFlagLong = "-searchRadius";
 static const char* customVectorFlag = "-cv";
 static const char* customVectorFlagLong = "-customVector";
 static const char* customVectorFlagX = "-cvx";
@@ -43,7 +43,7 @@ static const char* testBothDirectionsFlagLong = "-testBothDirections";
 
 SnapToClosest::SnapToClosest()
     : dummyBool(true)
-    , searchDistance(1000)
+    , searchRadius(1000)
 {
 }
 
@@ -63,7 +63,7 @@ MSyntax SnapToClosest::newSyntax()
     status = syntax.addFlag(modeFlag, modeFlagLong, MSyntax::kString);
     CHECK_MSTATUS_AND_RETURN(status, syntax);
 
-    status = syntax.addFlag(distanceFlag, distanceFlagLong, MSyntax::kDouble);
+    status = syntax.addFlag(searchRadiusFlag, searchRadiusFlagLong, MSyntax::kDouble);
     CHECK_MSTATUS_AND_RETURN(status, syntax);
 
     syntax.addFlag(customVectorFlag, customVectorFlagLong, MSyntax::kBoolean);
@@ -83,7 +83,7 @@ MStatus SnapToClosest::doIt(const MArgList& args)
     MStatus status;
 
     if (args.length() != 1) {
-        MGlobal::displayError("Need 2 argument.\n Target mesh and max searchDistance!\n eg. cmds.snapToClosest('|pSphere1', 100)\n");
+        MGlobal::displayError("Need 2 argument.\n Target mesh and max searchRadius!\n eg. cmds.snapToClosest('|pSphere1', 100)\n");
         return MStatus::kFailure;
     }
 
@@ -91,7 +91,7 @@ MStatus SnapToClosest::doIt(const MArgList& args)
     MArgDatabase argData(newSyntax(), args, &status);
     argData.getFlagArgument("-du", 0, dummyBool);
     argData.getFlagArgument("-m", 0, mode);
-    argData.getFlagArgument(distanceFlag, 0, searchDistance);
+    argData.getFlagArgument(searchRadiusFlag, 0, searchRadius);
 
     // Read snap target object from args
     targetObjectName = args.asString(0, &status);
@@ -230,7 +230,7 @@ MStatus SnapToClosest::snapToClosestNormal(MDagPath& sourceDagPath, MObject& com
         MPoint mHitPoint(hitPoint.x, hitPoint.y, hitPoint.z);
         MVector distanceVector = mHitPoint - currentPosition;
 
-        if (distanceVector.length() < searchDistance) {
+        if (distanceVector.length() < searchRadius) {
             newPositions[currentIndex] = mHitPoint;
         }
     }
@@ -263,7 +263,7 @@ MStatus SnapToClosest::snapToClosestSurface(MDagPath& sourceDagPath, MObject& co
         closestPoint = closestPoint * matrix;
 
         MVector distanceVector = closestPoint - currentPosition;
-        if (distanceVector.length() < searchDistance) {
+        if (distanceVector.length() < searchRadius) {
             newPositions[currentIndex] = closestPoint;
         }
     }
@@ -312,7 +312,7 @@ MStatus SnapToClosest::snapToClosestVertex(MDagPath& sourceDagPath, MObject& com
             MVector distanceVector = pointPosition - currentPosition;
 
             // If length is shorter than search distance, keep current point.
-            if (distanceVector.length() < searchDistance) {
+            if (distanceVector.length() < searchRadius) {
                 if (distanceVector.length() < shortestDistance) {
                     shortestDistance = distanceVector.length();
                     closestVertex = pointPosition;
