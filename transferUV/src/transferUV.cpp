@@ -157,12 +157,9 @@ MStatus TransferUV::redoIt()
         CHECK_MSTATUS_AND_RETURN_IT(status);
     }
 
-    // Resize source uv array so it becomes same size as number of targets uv
-    unsigned int targetNumUVs = targetFnMesh.numUVs();
-    if (targetNumUVs > sourceUarray.length()) {
-        sourceUarray.setLength(targetNumUVs);
-        sourceVarray.setLength(targetNumUVs);
-    }
+    // Clear target UVs before transfer in order to shrink the uvs array if number of source UVs
+    // are smaller than that of target UVs
+    targetFnMesh.clearUVs(targetUvSetPtr);
 
     status = targetFnMesh.setUVs(sourceUarray, sourceVarray, targetUvSetPtr);
     if (MS::kSuccess != status) {
@@ -192,12 +189,9 @@ MStatus TransferUV::undoIt()
 
     MString* targetUvSetPtr = &targetUvSet;
 
-    // Resize original uv array so it becomes same size as current num uvs
-    unsigned int numUVs = undoMesh.numUVs();
-    if (numUVs > originalUarray.length()) {
-        originalUarray.setLength(undoMesh.numUVs());
-        originalVarray.setLength(undoMesh.numUVs());
-    }
+    // Clear target UVs before transfer in order to shrink the uvs array if number of source UVs
+    // are smaller than that of target UVs
+    undoMesh.clearUVs(targetUvSetPtr);
 
     status = undoMesh.setUVs(originalUarray, originalVarray, targetUvSetPtr);
     if (MS::kSuccess != status) {

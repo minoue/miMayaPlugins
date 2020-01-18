@@ -13,7 +13,7 @@
 
 MStatus initializePlugin(MObject mObj)
 {
-    std::string version_str("1.0.7");
+    std::string version_str("1.1.0");
     std::string compile_date_str(__DATE__);
     std::string compile_time_str(__TIME__);
     std::string v(version_str + " / " + compile_date_str + " / " + compile_time_str);
