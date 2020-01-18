@@ -8,13 +8,16 @@
 #include "transferUV.h"
 #include <maya/MFnPlugin.h>
 #include <maya/MGlobal.h>
+#include <string>
+
 
 MStatus initializePlugin(MObject mObj)
 {
-    MString date = MGlobal::executeCommandStringResult("date -d;");
-    MString version("1.0.6 / ");
-    MString ver = version + date;
-    MFnPlugin fnPlugin(mObj, "Michitaka Inoue", ver.asChar(), "Any");
+    std::string version_str("1.0.7");
+    std::string compile_date_str(__DATE__);
+    std::string compile_time_str(__TIME__);
+    std::string v(version_str + " / " + compile_date_str + " / " + compile_time_str);
+    MFnPlugin fnPlugin(mObj, "Michitaka Inoue", v.c_str(), "Any");
     fnPlugin.registerCommand("transferUV", TransferUV::creator, TransferUV::newSyntax);
     return MS::kSuccess;
 }
