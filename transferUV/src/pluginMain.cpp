@@ -12,7 +12,7 @@
 MStatus initializePlugin(MObject mObj)
 {
     MString date = MGlobal::executeCommandStringResult("date -d;");
-    MString version("1.0.5 / ");
+    MString version("1.0.6 / ");
     MString ver = version + date;
     MFnPlugin fnPlugin(mObj, "Michitaka Inoue", ver.asChar(), "Any");
     fnPlugin.registerCommand("transferUV", TransferUV::creator, TransferUV::newSyntax);
