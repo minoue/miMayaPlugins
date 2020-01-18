@@ -35,9 +35,6 @@ private:
     MString sourceMesh;
     MString targetMesh;
 
-    bool useCurrentUvSetSource;
-    bool useCurrentUvSetTarget;
-
     // Orig infor for undo
     MIntArray originalUvCounts;
     MIntArray originalUvIds;

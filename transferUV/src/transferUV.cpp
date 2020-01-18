@@ -7,7 +7,6 @@
 
 
 #include "transferUV.h"
-#include <iostream>
 #include <maya/MArgDatabase.h>
 #include <maya/MArgList.h>
 #include <maya/MGlobal.h>
