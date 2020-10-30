@@ -1,4 +1,4 @@
-from Qt import QtWidgets, QtCore
+from PySide2 import QtWidgets, QtCore
 from maya import OpenMayaUI
 from maya import cmds
 try:
@@ -27,7 +27,6 @@ class SnapWindow(QtWidgets.QDialog):
     def __init__(self, parent=getMayaWindow()):
         self.closeExistingWindow()
 
-        print parent
         super(SnapWindow, self).__init__(parent)
 
         self.setWindowTitle("Snap")
