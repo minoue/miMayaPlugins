@@ -5,17 +5,16 @@
 ```
 mkdir build
 cd build
-cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DMAYA_VERSION=2015 ../
+cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DMAYA_ROOT_DIR="path/to/maya/dir" ../
 cmake --build . --config Release --target install
 
 ```
 
-### Windows (Visual Studio 2017 & Maya2018)
+### Windows
 ```
-cmake -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=Release -DMAYA_VERSION=2018 ../
+cmake -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Release -DMAYA_ROOT_DIR="path/to/maya/dir" ../
 cmake --build . --config Release --target install
 ```
-
 ##  Flags
 
 | Longname | Shortname | Argument types | default  | Properties |

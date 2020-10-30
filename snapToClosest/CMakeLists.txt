@@ -1,11 +1,18 @@
-cmake_minimum_required(VERSION 2.8)
-project(snapToClosest)
+cmake_minimum_required(VERSION 3.8)
+project(snapToClosest CXX)
 
 set(SOURCE_FILES
         src/pluginMain.cpp
         src/snapToClosest.h
         src/snapToClosest.cpp
         )
+
+
+if(NOT MAYA_ROOT_DIR)
+    message(FATAL_ERROR "MAYA_ROOT_DIR must be set!")
+else()
+    message(STATUS "Using MAYA_ROOT_DIR ${MAYA_ROOT_DIR}")
+endif()
 
 # https://www.guyrutenberg.com/2014/01/05/enabling-c11-c0x-in-cmake/
 include(CheckCXXCompilerFlag)
@@ -36,23 +43,23 @@ set(CMAKE_BUILD_TYPE Release CACHE STRING "Default build type")
 
 
 if (WIN32)
-    set(INCLUDE_DIR "C:/Program Files/Autodesk/Maya${MAYA_VERSION}/include")
-    set(LIBRARY_DIR "C:/Program Files/Autodesk/Maya${MAYA_VERSION}/lib")
+    set(MAYA_INCLUDE_DIR ${MAYA_ROOT_DIR}/include)
+    set(MAYA_LIB_DIR ${MAYA_ROOT_DIR}/lib)
     set(MAYA_COMPILE_DEFINITIONS "REQUIRE_IOSTREAM;_BOOL;NT_PLUGIN")
     set(MAYA_PLUGIN_EXTENSION ".mll")
     set(MAYA_TARGET_TYPE RUNTIME)
     set(INSTALL_DIR ../plug-ins/win_${MAYA_VERSION})
 elseif (APPLE)
-    set(INCLUDE_DIR "/Applications/Autodesk/maya${MAYA_VERSION}/devkit/include")
-    set(LIBRARY_DIR "/Applications/Autodesk/maya${MAYA_VERSION}/Maya.app/Contents/MacOS")
+    set(MAYA_INCLUDE_DIR ${MAYA_ROOT_DIR}/include)
+    set(MAYA_LIB_DIR ${MAYA_ROOT_DIR}/lib)
     set(MAYA_COMPILE_DEFINITIONS "REQUIRE_IOSTREAM;_BOOL;OSMac_")
     set(MAYA_PLUGIN_EXTENSION ".bundle")
     set(MAYA_TARGET_TYPE LIBRARY)
     set(CMAKE_MACOSX_RPATH ON)
     set(INSTALL_DIR ../plug-ins/macOS_${MAYA_VERSION})
 else ()
-    set(INCLUDE_DIR "")
-    set(LIBRARY_DIR "")
+    set(MAYA_INCLUDE_DIR ${MAYA_ROOT_DIR}/include)
+    set(MAYA_LIB_DIR ${MAYA_ROOT_DIR}/lib)
     set(MAYA_COMPILE_DEFINITIONS "REQUIRE_IOSTREAM;_BOOL;LINUX")
     set(MAYA_PLUGIN_EXTENSION ".so")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
@@ -61,8 +68,8 @@ else ()
 endif()
 
 
-include_directories(${INCLUDE_DIR})
-link_directories(${LIBRARY_DIR})
+include_directories(${MAYA_INCLUDE_DIR})
+link_directories(${MAYA_LIB_DIR})
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME}
         OpenMaya
