@@ -7,10 +7,11 @@ set(SOURCE_FILES
     src/pluginMain.cpp
     )
 
-# https://www.guyrutenberg.com/2014/01/05/enabling-c11-c0x-in-cmake/
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+if(NOT MAYA_ROOT_DIR)
+    message(FATAL_ERROR "MAYA_ROOT_DIR must be set!")
+else()
+    message(STATUS "Using MAYA_ROOT_DIR ${MAYA_ROOT_DIR}")
+endif()
 
 if (NOT WIN32)
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
@@ -30,15 +31,15 @@ set(CMAKE_BUILD_TYPE Release CACHE STRING "Default build type")
 
 
 if (WIN32)
-    set(INCLUDE_DIR "C:/Program Files/Autodesk/Maya${MAYA_VERSION}/include")
-    set(LIBRARY_DIR "C:/Program Files/Autodesk/Maya${MAYA_VERSION}/lib")
+    set(INCLUDE_DIR ${MAYA_ROOT_DIR}/include)
+    set(LIBRARY_DIR ${MAYA_ROOT_DIR}/lib)
     set(MAYA_COMPILE_DEFINITIONS "REQUIRE_IOSTREAM;_BOOL;NT_PLUGIN")
     set(MAYA_PLUGIN_EXTENSION ".mll")
     set(MAYA_TARGET_TYPE RUNTIME)
     set(INSTALL_DIR ../plug-ins/win_${MAYA_VERSION})
 elseif (APPLE)
-    set(INCLUDE_DIR "/Applications/Autodesk/maya${MAYA_VERSION}/include")
-    set(LIBRARY_DIR "/Applications/Autodesk/maya${MAYA_VERSION}/Maya.app/Contents/MacOS")
+    set(INCLUDE_DIR ${MAYA_ROOT_DIR}/include)
+    set(LIBRARY_DIR ${MAYA_ROOT_DIR}/Maya.app/Contents/MacOS)
     set(MAYA_COMPILE_DEFINITIONS "REQUIRE_IOSTREAM;_BOOL;OSMac_")
     set(MAYA_PLUGIN_EXTENSION ".bundle")
     set(MAYA_TARGET_TYPE LIBRARY)
