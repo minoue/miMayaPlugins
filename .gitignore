@@ -19,3 +19,4 @@ modules/
 !CMakeLists.txt
 !CMakeLists_template.txt
 plug-ins/
+maya_complete_modules
