@@ -1,10 +1,9 @@
-from __future__ import print_function
 import pickle
 from maya import cmds
+from pymel import core as pm
 
 
-PLUGIN_PATH = "/job/modelling/dev/sandbox/sandbox_minoue/dev/symTable/build/symmetryTable.so"
-DATA_PATH = "/net/homes/minoue/symData"
+PLUGIN_NAME = "symmetryTable.so"
 
 
 def loadPlugin():
@@ -12,7 +11,7 @@ def loadPlugin():
 
     if not cmds.pluginInfo("symmetryTable", q=True, loaded=True):
         try:
-            cmds.loadPlugin(PLUGIN_PATH)
+            cmds.loadPlugin(PLUGIN_NAME)
             print("Plugin loaded successfully")
         except RuntimeError:
             cmds.error("Error loading plugin")
@@ -22,6 +21,12 @@ def loadPlugin():
 
 def write():
     """ write sym table to a file """
+
+    # Get file path
+    filepath = pm.fileDialog2(fileMode=0, caption="Save sym data")
+    if filepath is None:
+        return
+    filepath = filepath[0]
 
     if len(cmds.ls(sl=True)) == 0:
         cmds.warning("Nothing is selected")
@@ -43,7 +48,7 @@ def write():
         pDict[i[0]] = i[1]
 
     # Store data (serialize)
-    with open(DATA_PATH, 'wb') as handle:
+    with open(filepath, 'wb') as handle:
         pickle.dump(pDict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
