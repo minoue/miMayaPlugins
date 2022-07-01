@@ -19,7 +19,7 @@ def loadPlugin():
         print("plugin is already loaded")
 
 
-def write():
+def createSymData(*args):
     """ write sym table to a file """
 
     # Get file path
@@ -52,10 +52,39 @@ def write():
         pickle.dump(pDict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
+def getBlendShapeNodes(*args):
+    sel = pm.ls(sl=True, fl=True)
+
+    blendShapes = []
+
+    if sel:
+        sel = sel[0]
+        hist = pm.listHistory(sel)
+        for h in hist:
+            if isinstance(h, pm.nt.BlendShape):
+                blendShapes.append(h)
+    
+    return blendShapes
+
+
+def gui():
+    windowName = "symTools"
+    if pm.window(windowName, q=True, exists=True):
+        pm.deleteUI(windowName)
+
+    win = pm.window(windowName, title="SymTools")
+    pm.columnLayout(adj=True)
+    pm.button("Create Sym Data", c=createSymData)
+    pm.text("Blend shapes")
+    pm.button("Mirror blendshape weights")
+    win.show()
+
+
 def main():
     """ main """
 
-    write()
+    loadPlugin()
+    gui()
 
 
 if __name__ == "__main__":
