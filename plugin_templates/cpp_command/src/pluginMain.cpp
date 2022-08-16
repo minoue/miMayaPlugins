@@ -5,7 +5,7 @@
 MStatus initializePlugin(MObject mObj)
 {
     MFnPlugin fnPlugin(mObj, "Michitaka Inoue", "0.0.1", "Any");
-    fnPlugin.registerCommand("sampleCommand", SampleCommand::creater);
+    fnPlugin.registerCommand("sampleCommand", SampleCommand::creator);
     return MS::kSuccess;
 }
 

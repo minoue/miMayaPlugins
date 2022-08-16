@@ -63,7 +63,8 @@ bool SampleCommand::isUndoable() const {
     return false;
 }
 
-void* SampleCommand::creater()
+void* SampleCommand::creator()
+
 {
     return new SampleCommand;
 }                                           

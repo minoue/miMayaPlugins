@@ -14,7 +14,7 @@ public:
     MStatus undoIt();
     MStatus redoIt();
     bool isUndoable() const;
-    static void* creater();
+    static void* creator();
 private:
     MDagPath mDagPath;
 };
