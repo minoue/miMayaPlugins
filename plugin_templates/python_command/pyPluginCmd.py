@@ -1,6 +1,9 @@
-from maya import OpenMaya
-from maya import OpenMayaMPx
+from maya.api import OpenMaya
 import sys
+
+
+__VERSION__ = "0.1"
+__AUTHOR__ = "NAME"
 
 
 kPluginCmdName = "samplePyCmd"
@@ -8,7 +11,7 @@ kVerboseFlag = "-v"
 kVerboseLongFlag = "-verbose"
 
 
-class SamplePyCmd(OpenMayaMPx.MPxCommand):
+class SamplePyCmd(OpenMaya.MPxCommand):
 
     def __init__(self):
         super(SamplePyCmd, self).__init__()
@@ -20,6 +23,7 @@ class SamplePyCmd(OpenMayaMPx.MPxCommand):
 
         # Parse the arguments.
         argData = OpenMaya.MArgDatabase(self.syntax(), args)
+
         try:
             self.cmdArg = argData.commandArgumentString(0)
         except RuntimeError:
@@ -27,43 +31,33 @@ class SamplePyCmd(OpenMayaMPx.MPxCommand):
         if argData.isFlagSet(kVerboseFlag):
             self.verbose = argData.flagArgumentBool(kVerboseFlag, 0)
 
-        # Do something
-        print "Hello world"
-
-        self.undoIt
-
-    def undoIt(self):
-
-        if self.verbose:
-            print 'verbose mode'
-            print self.cmdArg
+        self.redoIt()
 
     def redoIt(self):
+        # Do something
+        print("Hello world")
+
+        if self.verbose:
+            print('verbose mode')
+            print("Arg : {}".format(self.cmdArg))
+
+    def undoIt(self):
         pass
 
     def isUndoable(self):
         return True
 
 
-# Creator
 def cmdCreator():
-    # Create the command
-    """
-    
-    Return:
-        pointer to the command
-    
-    """
-    ptr = OpenMayaMPx.asMPxPtr(SamplePyCmd())
-    return ptr
+    return SamplePyCmd()
 
 
 def syntaxCreator():
     """ Syntax creator
-    
+
     Return:
         syntax (OpenMaya.MSyntax): return value
-    
+
     """
     syntax = OpenMaya.MSyntax()
     syntax.addArg(OpenMaya.MSyntax.kString)
@@ -71,31 +65,35 @@ def syntaxCreator():
     return syntax
 
 
-def initializePlugin(mobject):
+def initializePlugin(mObj):
     """ Initialize the script plug-in
 
     Args:
         mobject (OpenMaya.MObject):
 
     """
-    mplugin = OpenMayaMPx.MFnPlugin(mobject, "Name", "1.0", "Any")
+    mplugin = OpenMaya.MFnPlugin(mObj, __AUTHOR__, __VERSION__)
     try:
         mplugin.registerCommand(kPluginCmdName, cmdCreator, syntaxCreator)
-    except:
+    except Exception:
         sys.stderr.write("Failed to register command: %s\n" % kPluginCmdName)
         raise
 
 
-def uninitializePlugin(mobject):
+def uninitializePlugin(mObj):
     """ Uninitialize the script plug-in
-    
+
     Args:
         mobject (OpenMaya.MObject):
-    
+
     """
-    mplugin = OpenMayaMPx.MFnPlugin(mobject)
+    mplugin = OpenMaya.MFnPlugin(mObj)
     try:
         mplugin.deregisterCommand(kPluginCmdName)
-    except:
+    except Exception:
         sys.stderr.write("Failed to unregister command: %s\n" % kPluginCmdName)
         raise
+
+
+def maya_useNewAPI():
+    pass
