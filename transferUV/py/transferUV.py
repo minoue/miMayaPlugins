@@ -5,7 +5,7 @@ from maya.api import OpenMaya
 
 
 kPluginCmdName = "transferUV"
-kPluginVersion = "0.0.1"
+kPluginVersion = "0.0.2"
 kPluginAuthor = "Michi Inoue"
 kSourceUvSetFlag = "-suv"
 kSourceUvSetFlagLong = "-sourceUvSet"
@@ -59,10 +59,18 @@ class TransferUV(OpenMaya.MPxCommand):
             self.targetUvSet = "map1"
 
         mSel = OpenMaya.MGlobal.getActiveSelectionList()
+        numSel = mSel.length()
+
+        if self.sourceMesh is None and numSel < 2:
+            OpenMaya.MGlobal.displayWarning(
+                (""" Source mesh and target mesh are not specifiied, or not enough objs are """
+                 """selected. Specify source and target in the arguments or select two objs"""))
+            return
 
         if self.sourceMesh is None:
             try:
                 self.sourceDagPath = mSel.getDagPath(0)
+                print("Source mesh is not given in the arguments. Using {} as a source mesh.".format(self.sourceDagPath.fullPathName()))
             except RuntimeError:
                 OpenMaya.MGlobal.displayWarning(
                     "Failed to set source DagPath. Select source mesh first, then target mesh")
@@ -78,6 +86,7 @@ class TransferUV(OpenMaya.MPxCommand):
         if self.targetMesh is None:
             try:
                 self.targetDagPath = mSel.getDagPath(1)
+                print("Target mesh is not given in the arguments. Using {} as a target mesh.".format(self.targetDagPath.fullPathName()))
             except RuntimeError:
                 OpenMaya.MGlobal.displayWarning(
                     "Failed to set target DagPath. Select source mesh first, then target mesh")
@@ -90,8 +99,9 @@ class TransferUV(OpenMaya.MPxCommand):
                 OpenMaya.MGlobal.displayWarning("Object doesn't exist")
                 return
 
-        print "Copying uv from {} to {}".format(
-            self.sourceDagPath.fullPathName(), self.targetDagPath.fullPathName())
+        print("Copying uv from {} to {}".format(
+            self.sourceDagPath.fullPathName(),
+            self.targetDagPath.fullPathName()))
 
         self.redoIt()
 
@@ -104,8 +114,7 @@ class TransferUV(OpenMaya.MPxCommand):
         sourceUvIds = OpenMaya.MIntArray()
 
         sourceUarray, sourceVarray = sourceFnMesh.getUVs(self.sourceUvSet)
-        self.originalUarray, self.originalVarray = targetFnMesh.getUVs(
-            self.targetUvSet)
+        self.originalUarray, self.originalVarray = targetFnMesh.getUVs(self.targetUvSet)
 
         sourceUvCounts, sourceUvIds = sourceFnMesh.getAssignedUVs()
         self.originalUvCounts, self.originalUvIds = targetFnMesh.getAssignedUVs()
@@ -123,10 +132,8 @@ class TransferUV(OpenMaya.MPxCommand):
         # Clear target UVs before transfer in order to shrink the uvs array if number of source UVs
         # are smaller than that of target UVs
         undoMesh.clearUVs(self.targetUvSet)
-        undoMesh.setUVs(self.originalUarray,
-                        self.originalVarray, self.targetUvSet)
-        undoMesh.assignUVs(self.originalUvCounts,
-                           self.originalUvIds, self.targetUvSet)
+        undoMesh.setUVs(self.originalUarray, self.originalVarray, self.targetUvSet)
+        undoMesh.assignUVs(self.originalUvCounts, self.originalUvIds, self.targetUvSet)
 
     def isUndoable(self):
         return True
@@ -145,14 +152,10 @@ def syntaxCreator():
     """
     syntax = OpenMaya.MSyntax()
     syntax.addArg(OpenMaya.MSyntax.kString)
-    syntax.addFlag(kSourceUvSetFlag, kSourceUvSetFlagLong,
-                   OpenMaya.MSyntax.kString)
-    syntax.addFlag(kTargetUvSetFlag, kTargetUvSetFlagLong,
-                   OpenMaya.MSyntax.kString)
-    syntax.addFlag(kSourceMeshFlag, kSourceMeshFlagLong,
-                   OpenMaya.MSyntax.kString)
-    syntax.addFlag(kTargetMeshFlag, kTargetMeshFlagLong,
-                   OpenMaya.MSyntax.kString)
+    syntax.addFlag(kSourceUvSetFlag, kSourceUvSetFlagLong, OpenMaya.MSyntax.kString)
+    syntax.addFlag(kTargetUvSetFlag, kTargetUvSetFlagLong, OpenMaya.MSyntax.kString)
+    syntax.addFlag(kSourceMeshFlag, kSourceMeshFlagLong, OpenMaya.MSyntax.kString)
+    syntax.addFlag(kTargetMeshFlag, kTargetMeshFlagLong, OpenMaya.MSyntax.kString)
     return syntax
 
 
@@ -175,7 +178,7 @@ def initializePlugin(mObject):
     try:
         mplugin.registerCommand(
             kPluginCmdName, TransferUV.cmdCreator, syntaxCreator)
-    except:
+    except Exception:
         sys.stderr.write("Failed to register command: %s\n" % kPluginCmdName)
         raise
 
@@ -190,6 +193,6 @@ def uninitializePlugin(mObject):
     mplugin = OpenMaya.MFnPlugin(mObject)
     try:
         mplugin.deregisterCommand(kPluginCmdName)
-    except:
+    except Exception:
         sys.stderr.write("Failed to unregister command: %s\n" % kPluginCmdName)
         raise
