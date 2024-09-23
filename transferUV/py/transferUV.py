@@ -5,7 +5,7 @@ from maya.api import OpenMaya
 
 
 kPluginCmdName = "transferUV"
-kPluginVersion = "0.0.2"
+kPluginVersion = "0.0.3"
 kPluginAuthor = "Michi Inoue"
 kSourceUvSetFlag = "-suv"
 kSourceUvSetFlagLong = "-sourceUvSet"
@@ -110,21 +110,20 @@ class TransferUV(OpenMaya.MPxCommand):
         sourceFnMesh = OpenMaya.MFnMesh(self.sourceDagPath)
         targetFnMesh = OpenMaya.MFnMesh(self.targetDagPath)
 
-        sourceUvCounts = OpenMaya.MIntArray()
-        sourceUvIds = OpenMaya.MIntArray()
+        # Store the original UV data for undo
+        self.origUArray, self.origVArray = targetFnMesh.getUVs(self.targetUvSet)
+        self.origUvCounts, self.origUvIds = targetFnMesh.getAssignedUVs(self.targetUvSet)
 
-        sourceUarray, sourceVarray = sourceFnMesh.getUVs(self.sourceUvSet)
-        self.originalUarray, self.originalVarray = targetFnMesh.getUVs(self.targetUvSet)
-
-        sourceUvCounts, sourceUvIds = sourceFnMesh.getAssignedUVs()
-        self.originalUvCounts, self.originalUvIds = targetFnMesh.getAssignedUVs()
+        # Get source UV data to transfer to the target mesh
+        srcUArray, srcVArray = sourceFnMesh.getUVs(self.sourceUvSet)
+        srcUvCounts, srcUvIds = sourceFnMesh.getAssignedUVs(self.sourceUvSet)
 
         # Clear target UVs before transfer in order to shrink the uvs array if number of source UVs
         # are smaller than that of target UVs
         targetFnMesh.clearUVs(self.targetUvSet)
 
-        targetFnMesh.setUVs(sourceUarray, sourceVarray, self.targetUvSet)
-        targetFnMesh.assignUVs(sourceUvCounts, sourceUvIds, self.targetUvSet)
+        targetFnMesh.setUVs(srcUArray, srcVArray, self.targetUvSet)
+        targetFnMesh.assignUVs(srcUvCounts, srcUvIds, self.targetUvSet)
 
     def undoIt(self):
         undoMesh = OpenMaya.MFnMesh(self.targetDagPath)
@@ -132,8 +131,8 @@ class TransferUV(OpenMaya.MPxCommand):
         # Clear target UVs before transfer in order to shrink the uvs array if number of source UVs
         # are smaller than that of target UVs
         undoMesh.clearUVs(self.targetUvSet)
-        undoMesh.setUVs(self.originalUarray, self.originalVarray, self.targetUvSet)
-        undoMesh.assignUVs(self.originalUvCounts, self.originalUvIds, self.targetUvSet)
+        undoMesh.setUVs(self.origUArray, self.origVArray, self.targetUvSet)
+        undoMesh.assignUVs(self.origUvCounts, self.origUvIds, self.targetUvSet)
 
     def isUndoable(self):
         return True
